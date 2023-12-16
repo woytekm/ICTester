@@ -4,3 +4,6 @@ It's based on usbd_lib_cdc example from LPCOpen library, as one of the needed fe
 Project is a self contained build system, it does not need any additional sources. Everything needed to build is included, except the compiler.
 To build - use arm-none-eabi-gcc compiler from MCUXpresso suite.
 
+This project uses a simple custom board with LPC1769, USB port and two breakout headers for GPIO pins. 
+I'm using board.h for NXP LPCXpresso 1769 development board.
+
