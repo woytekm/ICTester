@@ -32,7 +32,7 @@ ictester.axf: $(OBJS) $(USER_OBJS) makefile $(OPTIONAL_TOOL_DEPS)
 
 # Other Targets
 clean:
-	$(RM) ictester.axf
+	$(RM) ictester.axf ictester.hex
 	-@echo ' '
 
 post-build:
