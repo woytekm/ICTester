@@ -1,0 +1,13 @@
+src/SEGGER_RTT.c:171:12:_strlen	24	static
+src/SEGGER_RTT.c:197:13:_Init	4	static
+src/SEGGER_RTT.c:227:5:SEGGER_RTT_Read	40	static
+src/SEGGER_RTT.c:294:5:SEGGER_RTT_Write	40	static
+src/SEGGER_RTT.c:379:5:SEGGER_RTT_WriteString	24	static
+src/SEGGER_RTT.c:401:5:SEGGER_RTT_GetKey	16	static
+src/SEGGER_RTT.c:427:5:SEGGER_RTT_WaitKey	16	static
+src/SEGGER_RTT.c:450:5:SEGGER_RTT_HasKey	16	static
+src/SEGGER_RTT.c:474:5:SEGGER_RTT_ConfigUpBuffer	24	static
+src/SEGGER_RTT.c:505:5:SEGGER_RTT_ConfigDownBuffer	24	static
+src/SEGGER_RTT.c:532:6:SEGGER_RTT_Init	8	static
+src/SEGGER_RTT.c:544:6:SEGGER_RTT_SetTerminal	24	static
+src/SEGGER_RTT.c:568:5:SEGGER_RTT_TerminalOut	24	static

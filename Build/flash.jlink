@@ -1,0 +1,9 @@
+sleep 100
+r
+h
+loadfile ictester.hex
+sleep 100
+r
+g
+exit
+
