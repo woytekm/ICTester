@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdio.h>
 #include "cli_io.h"
 #include "cdc_vcom.h"
 #include "SEGGER_RTT.h"
@@ -11,7 +12,7 @@ void vcom_putch(void *data, unsigned char ch, bool is_last)
 {
   uint16_t i;
 
-  for(i = 0; i < 8192; i++)
+  for(i = 0; i < 16384; i++)
     {}
 
   vcom_write(&ch, 1);

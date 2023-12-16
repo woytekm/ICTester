@@ -7,3 +7,6 @@ To build - use arm-none-eabi-gcc compiler from MCUXpresso suite.
 This project uses a simple custom board with LPC1769, USB port and two breakout headers for GPIO pins. 
 I'm using board.h for NXP LPCXpresso 1769 development board.
 
+Tester has 32 GPIO pins, and uses 4 TI TXB0108 bidirectional level translators to have 3.3V/5V compatibility.
+
+
