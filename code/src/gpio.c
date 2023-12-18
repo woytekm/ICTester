@@ -5,7 +5,7 @@
 
 uint8_t G_gpio_map[] = {
     [1] = PIN_1_OE,
-    [10] = PIN_10,
+    [10] = PIN_10,  
     [11] = PIN_11,
     [12] = PIN_12,
     [13] = PIN_13,
@@ -57,6 +57,21 @@ void init_pin_array(void) {
 
 void init_pins(void)
 {
+   
+    uint8_t bank,pin;
+
+    // set ethernet pins to GPIO: 
+    LPC_PINCON->PINSEL2 = 0x0;
+
+    // set all pins used for tester I/O to FUNC0 - GPIO, pullup inactive
+    for(uint8_t i = 1; i < sizeof(G_gpio_map) / sizeof(G_gpio_map[0]); ++i) 
+      {
+        bank = G_gpio_map[i]/100;
+        pin = G_gpio_map[i] - bank * 100;
+        Chip_IOCON_PinMux(LPC_IOCON, bank, pin, IOCON_MODE_INACT, IOCON_FUNC0);
+      }
+
+    // set all pins used for tester I/O to output/LOW
     for (uint8_t i = 1; i < sizeof(G_gpio_map) / sizeof(G_gpio_map[0]); ++i) {
         uint8_t pin_id = i;
         
@@ -75,13 +90,22 @@ void init_pins(void)
 
 void init_leds(void)
 {
- set_pin_write(PIN_GREEN_LED);
+ set_pin_write(PIN_GREEN_LED); 
  set_pin_write(PIN_RED_LED);
  set_pin_write(PIN_YELLOW_LED);
 
  set_pin_high(PIN_GREEN_LED);
  set_pin_high(PIN_RED_LED);
  set_pin_high(PIN_YELLOW_LED);
+
+ SEGGER_RTT_printf(0,"PINSEL0: %X\n",LPC_PINCON->PINSEL0 );
+ SEGGER_RTT_printf(0,"PINSEL1: %X\n",LPC_PINCON->PINSEL1 );
+ SEGGER_RTT_printf(0,"PINSEL2: %X\n",LPC_PINCON->PINSEL2 );
+ SEGGER_RTT_printf(0,"PINSEL3: %X\n",LPC_PINCON->PINSEL3 );
+ SEGGER_RTT_printf(0,"PINSEL4: %X\n",LPC_PINCON->PINSEL4 );
+ SEGGER_RTT_printf(0,"PINSEL5: %X\n",LPC_PINCON->PINSEL5 );
+
+
 }
 
 void set_pin_write(uint16_t bank_pin)
