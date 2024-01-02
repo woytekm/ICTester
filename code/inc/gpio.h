@@ -1,6 +1,7 @@
-void set_pin_write(uint16_t bank_pin);
-void set_pin_high(uint16_t bank_pin);
-void set_pin_low(uint16_t bank_pin);
-uint8_t get_pin(uint16_t bank_pin);
+void set_pin_write(uint32_t bank_pin);
+void set_pin_high(uint32_t bank_pin);
+void set_pin_low(uint32_t bank_pin);
+void toggle_pin(uint32_t bank_pin);
+uint32_t get_pin(uint32_t bank_pin);
 void init_pin_array(void);
 

@@ -5,23 +5,21 @@
 #include "cli_io.h"
 #include "cdc_vcom.h"
 #include "SEGGER_RTT.h"
+#include "timers.h"
 
 
 
 void vcom_putch(void *data, unsigned char ch, bool is_last)
 {
-  uint16_t i;
-
-  for(i = 0; i < 16384; i++)
-    {}
-
+  delayMS(1);
   vcom_write(&ch, 1);
 }
 
 void vcom_message(char *message)
  {
-   char out_msg[255];
-   sprintf(out_msg,"info: %s\r",message);
-   vcom_write(out_msg, strlen(out_msg));
+   uint8_t i;
+
+   for(i=0; i<strlen(message); i++)
+     vcom_putch(NULL, message[i], false);
  }
 

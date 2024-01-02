@@ -152,8 +152,9 @@ ErrorCode_t vcom_init(USBD_HANDLE_T hUsb, USB_CORE_DESCS_T *pDesc, USBD_API_INIT
 	return ret;
 }
 
+
 /* Virtual com port buffered read routine */
-uint32_t vcom_bread(uint8_t *pBuf, uint32_t buf_len)
+uint32_t vcom_bread_saved(uint8_t *pBuf, uint32_t buf_len)
 {
 	VCOM_DATA_T *pVcom = &g_vCOM;
 	uint16_t cnt = 0;
@@ -175,6 +176,37 @@ uint32_t vcom_bread(uint8_t *pBuf, uint32_t buf_len)
 	return cnt;
 
 }
+
+
+/* Virtual com port buffered read routine FIXED */
+
+uint32_t vcom_bread(uint8_t *pBuf, uint32_t buf_len)
+{
+  VCOM_DATA_T *pVcom = &g_vCOM;
+  uint16_t cnt = 0;
+   /* read from the default buffer if any data present */
+  if (pVcom->rx_count) {
+  if ((pVcom->rx_count - pVcom->rx_rd_count) < buf_len) {
+    cnt = (pVcom->rx_count - pVcom->rx_rd_count);
+   }
+  else {
+    cnt = buf_len;
+   }
+  memcpy(pBuf, (pVcom->rx_buff + pVcom->rx_rd_count) , cnt);
+  pVcom->rx_rd_count += cnt;
+
+  /* enter critical section */
+  NVIC_DisableIRQ(USB_IRQn);
+  if (pVcom->rx_rd_count >= pVcom->rx_count) {
+     pVcom->rx_flags &= ~VCOM_RX_BUF_FULL;
+     pVcom->rx_rd_count = pVcom->rx_count = 0;
+     }
+   /* exit critical section */
+    NVIC_EnableIRQ(USB_IRQn);
+   }
+  return cnt;
+}
+
 
 /* Virtual com port read routine */
 ErrorCode_t vcom_read_req(uint8_t *pBuf, uint32_t len)

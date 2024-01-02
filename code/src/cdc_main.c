@@ -113,13 +113,14 @@ int main(void)
 	USBD_API_INIT_PARAM_T usb_param;
 	USB_CORE_DESCS_T desc;
 	ErrorCode_t ret = LPC_OK;
-	uint32_t prompt = 0, rdCnt = 0;
 
 	/* Initialize board and chip */
 	SystemCoreClockUpdate();
 	Board_Init();
 
 	StopWatch_Init();
+
+        SEGGER_RTT_printf(0,"SystemCoreClock: %d \n",SystemCoreClock);
 
 	/* enable clocks and pinmux */
 	usb_pin_clk_init();
@@ -157,7 +158,10 @@ int main(void)
 
 
         init_pin_array(); // initialize analyzer pin data structures
+
         init_pins();      // initialize all pins to default state
+
+        init_timers();
 
         init_leds();
 
@@ -171,7 +175,7 @@ int main(void)
         while (!done) {
            __WFI();
            bytes = vcom_bread(&g_rxBuff[0], 256);
-           //SEGGER_RTT_printf(0,"vcom_bread: read %d bytes: [%X,%X,%X,%X,%X,%X]\n",bytes,g_rxBuff[0],g_rxBuff[1],g_rxBuff[2],g_rxBuff[3],g_rxBuff[4],g_rxBuff[5]);
+           SEGGER_RTT_printf(0,"vcom_bread: read %d bytes: [%X,%X,%X,%X,%X,%X]\n",bytes,g_rxBuff[0],g_rxBuff[1],g_rxBuff[2],g_rxBuff[3],g_rxBuff[4],g_rxBuff[5]);
 
            for(i=0; i<bytes; i++)
              if (embedded_cli_insert_char(&cli, g_rxBuff[i])) {
