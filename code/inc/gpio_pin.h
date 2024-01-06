@@ -101,6 +101,7 @@ typedef struct {
 // Array of pin structs
 #define PIN_COUNT 48
 
+extern uint8_t G_gpio_map[];
 extern pin G_pin_array[PIN_COUNT];
 extern uint8_t G_clock_pin;
 extern uint8_t G_clock_state;

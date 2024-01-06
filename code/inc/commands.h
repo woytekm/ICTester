@@ -49,5 +49,5 @@ void display_hwinfo();
 
 void dispatch_cli_command(int cli_argc, char **cli_argv);
 bool validate_pin_id(uint8_t pin_id);
-
+bool parse_pin_alias_params(int argc, char** argv, uint8_t *bank_bitmap, char pin_aliases[48][5]);
 

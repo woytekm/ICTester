@@ -642,7 +642,7 @@ bool handle_loop_settings(test_frame_t *frame, char *loop_param1, char *loop_par
 
 // Function to set test frame
 void cli_set_test_frame(int argc, char** argv) {
-    if (argc != 6) {
+    if (argc < 6) {
         vcom_printf("set test frame <test name> <frame number> <bitmap 1> <bitmap 2> <bitmap 3> <bitmap 4>\n\r");
         vcom_printf("set test frame <test name> <frame number> loop <X> until loop=Y. Do Y loops to frame X. Bank counters will not be reset.\n\r");
         vcom_printf("set test frame <test name> <frame number> loop <X> until bankY=Z. Loop to frame X until bank Y matches Z value. Bank will not be reset.\n\r");
@@ -760,7 +760,64 @@ void cli_set_test_frame(int argc, char** argv) {
         G_test_array[test_index]->test_frames[frame_number]->bank_bitmap[i + 1] = bank_setting;
     }
 
+    if(argc > 6)
+      if(!parse_pin_alias_params(argc - 6, argv + 6, G_test_array[test_index]->test_frames[frame_number]->bank_bitmap, G_test_array[test_index]->pin_aliases))
+         vcom_printf("ERROR during parsing pin alias params, frame %u\n\r", frame_number);
+
     vcom_printf("frame set for test %s, frame %u\n\r", test_name, frame_number);
+}
+
+
+bool parse_pin_alias_params(int argc, char** argv, uint8_t *bank_bitmap, char pin_aliases[48][5])
+{
+
+  bool alias_found = false;
+
+  for (int i = 0; i < argc; ++i) {
+
+        char *equal_sign = strchr(argv[i], '=');
+
+        if (equal_sign != NULL) {
+            *equal_sign = '\0';  // Null-terminate at the equal sign
+
+            // Check if the alias exists in the pin_aliases array
+            int alias_index = -1;
+            for (int j = 0; j < MAX_ALIASES; ++j) {
+             if(strlen(pin_aliases[j]) != 0)
+              {
+                
+                if (strcmp(argv[i], pin_aliases[j]) == 0) {
+                   alias_index = j;
+                   alias_found = true;
+                   break;
+                }
+              }
+            }
+
+         if(!alias_found)
+            vcom_printf("ERROR: alias %s is not set in this test \r\n");
+
+         if (alias_index != -1) {
+                // Set or clear the corresponding bit in the bank_bitmap
+                int bank_number = alias_index/10;
+                int bit_position = alias_index % 10;;
+
+                if (strcmp(equal_sign + 1, "L") == 0) {
+                    // Set the bit to 0 for logic low
+                    bank_bitmap[bank_number] &= ~(1 << bit_position);
+                } else if (strcmp(equal_sign + 1, "H") == 0) {
+                    // Set the bit to 1 for logic high
+                    bank_bitmap[bank_number] |= (1 << bit_position);
+                }
+
+                // Print information for demonstration purposes
+                vcom_printf("alias: %s, bank: %d, bit position: %d, value: %s\r\n", argv[i], bank_number, bit_position, equal_sign + 1);
+            }
+        }
+      vcom_printf("ERROR: bad extra parameter for \"set test frame\" command \r\n");
+    }
+
+    return true;
 }
 
 // Function to show test aliases

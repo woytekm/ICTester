@@ -68,7 +68,18 @@ static ErrorCode_t VCOM_bulk_out_hdlr(USBD_HANDLE_T hUsb, void *data, uint32_t e
 
 	switch (event) {
 	case USB_EVT_OUT:
-		pVcom->rx_count = USBD_API->hw->ReadEP(hUsb, USB_CDC_OUT_EP, pVcom->rx_buff);
+                if(pVcom->rx_count == 0)
+                 {
+                   //SEGGER_RTT_printf(0,"VCOM_bulk_out_hdlr: rx_count is zero, reading more data\n");
+  	    	   pVcom->rx_count = USBD_API->hw->ReadEP(hUsb, USB_CDC_OUT_EP, pVcom->rx_buff);
+                 }
+                else
+                 {
+                   //SEGGER_RTT_printf(0,"VCOM_bulk_out_hdlr: rx_count is not zero (%d)\n",pVcom->rx_count);
+                   pVcom->usbrx_pend = 1;
+                   return LPC_OK;
+                 }
+
 		if (pVcom->rx_flags & VCOM_RX_BUF_QUEUED) {
 			pVcom->rx_flags &= ~VCOM_RX_BUF_QUEUED;
 			if (pVcom->rx_count != 0) {
@@ -180,8 +191,9 @@ uint32_t vcom_bread_saved(uint8_t *pBuf, uint32_t buf_len)
 
 /* Virtual com port buffered read routine FIXED */
 
-uint32_t vcom_bread(uint8_t *pBuf, uint32_t buf_len)
+uint32_t vcom_bread(USBD_HANDLE_T hUsb, uint8_t *pBuf, uint32_t buf_len)
 {
+
   VCOM_DATA_T *pVcom = &g_vCOM;
   uint16_t cnt = 0;
    /* read from the default buffer if any data present */
@@ -192,6 +204,9 @@ uint32_t vcom_bread(uint8_t *pBuf, uint32_t buf_len)
   else {
     cnt = buf_len;
    }
+
+  //SEGGER_RTT_printf(0,"vcom_bread: read (rx_count: %d, rx_rd_count:%d)\n",pVcom->rx_count,pVcom->rx_rd_count);
+
   memcpy(pBuf, (pVcom->rx_buff + pVcom->rx_rd_count) , cnt);
   pVcom->rx_rd_count += cnt;
 
@@ -204,6 +219,14 @@ uint32_t vcom_bread(uint8_t *pBuf, uint32_t buf_len)
    /* exit critical section */
     NVIC_EnableIRQ(USB_IRQn);
    }
+
+   if(pVcom->usbrx_pend) {
+       pVcom->usbrx_pend = 0;
+       VCOM_bulk_out_hdlr(pVcom->hUsb, (void*)pVcom, USB_EVT_OUT);
+    }
+
+  //pVcom->rx_count = USBD_API->hw->ReadEP(hUsb, USB_CDC_OUT_EP, pVcom->rx_buff);
+
   return cnt;
 }
 

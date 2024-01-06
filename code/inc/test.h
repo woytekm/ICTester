@@ -5,6 +5,7 @@
 #define MAX_TESTS 8
 #define MAX_FRAMES 64
 #define MAX_STATES 2048
+#define MAX_ALIASES 48
 
 typedef struct {
   //uint32_t LPC_GPIOX_FIOSET_bitmap[5];   // pin set map
@@ -19,6 +20,7 @@ typedef struct {
                         // 1 - loop to frame number bank_bitmap[0] until bank_counter = bank_bitmap[1] 
                         // 2 - loop to frame number bank_bitmap[0] until bank_bitmap[1] loops passed
   uint8_t use_counters;
+  // uint8_t bank_counter_assignment[5];
   bool done;
 } test_frame_t;
 
@@ -26,7 +28,7 @@ typedef struct {
 typedef struct {
     char test_name[20];
     uint8_t io_settings[5];  // each of 4 banks of 8 pins can be either input or output: 0: input, 1: output
-    char pin_aliases[48][5];
+    char pin_aliases[MAX_ALIASES][5];
     uint8_t clock_pin;
     uint8_t reset_pin;
     test_frame_t *test_frames[64];
@@ -34,6 +36,7 @@ typedef struct {
     uint8_t frame_count;
     uint16_t frame_interval_ms;
     uint32_t iterations_done;
+    uint8_t counter_bank[9];
 } test_data_t;
 
 

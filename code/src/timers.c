@@ -32,6 +32,20 @@ void delayMS(unsigned int milliseconds) //Using Timer0
 }
 
 
+void initTimer2(void)
+{
+        /*Assuming that PLL0 has been setup with CCLK = 96Mhz and PCLK = 24Mhz.*/
+        LPC_SC->PCONP |= (1<<22); //Power up TIM0. By default TIM0 and TIM1 are enabled.
+        //LPC_SC->PCLKSEL0 &= ~(0x3<<3); //Set PCLK for timer = CCLK/4 = 96/4 (default)
+
+        LPC_TIM2->CTCR = 0x0;
+        LPC_TIM2->PR = DEFAULT_TIM_2_PRESCALE; //Increment TC at every 23999+1 clock cycles
+        //25000 clock cycles @25Mhz = 1 mS
+
+        LPC_TIM2->TCR = 0x02; //Reset Timer
+}
+
+
 void initTimer1(void)
 {
 
@@ -93,7 +107,7 @@ void TIMER1_IRQHandler(void)
 void init_timers(void)
  {
   initTimer0();
-  initTimer1();
+//  initTimer1();
  }
 
 

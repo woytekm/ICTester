@@ -131,6 +131,8 @@ void set_pin_read(uint32_t bank_pin)
      LPC_GPIO1->FIODIR &= ~(1 << (uint32_t)(bank_pin - 100));
    else
      LPC_GPIO0->FIODIR &= ~(1 << (uint32_t)(bank_pin));
+
+   set_pin_low(bank_pin);
  }
 
 
@@ -243,7 +245,10 @@ void init_pins(void)
             set_pin_high(G_pin_array[pin_id].gpio_id);
          }
         else if (G_pin_array[pin_id].direction == PIN_INPUT)
+         {
           set_pin_read(G_pin_array[pin_id].gpio_id);
+          set_pin_low(G_pin_array[pin_id].gpio_id);
+         }
     }
     
 }

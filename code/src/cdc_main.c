@@ -114,6 +114,8 @@ int main(void)
 	USB_CORE_DESCS_T desc;
 	ErrorCode_t ret = LPC_OK;
 
+        VCOM_DATA_T *pVcom = &g_vCOM;
+
 	/* Initialize board and chip */
 	SystemCoreClockUpdate();
 	Board_Init();
@@ -173,25 +175,25 @@ int main(void)
         uint8_t i,bytes;
 
         while (!done) {
-           __WFI();
-           bytes = vcom_bread(&g_rxBuff[0], 256);
-           SEGGER_RTT_printf(0,"vcom_bread: read %d bytes: [%X,%X,%X,%X,%X,%X]\n",bytes,g_rxBuff[0],g_rxBuff[1],g_rxBuff[2],g_rxBuff[3],g_rxBuff[4],g_rxBuff[5]);
 
-           for(i=0; i<bytes; i++)
-             if (embedded_cli_insert_char(&cli, g_rxBuff[i])) {
-              int cli_argc;
-              char **cli_argv;
-              cli_argc = embedded_cli_argc(&cli, &cli_argv);
-              //vcom_message("command entered\n");
-              for (int i = 0; i < cli_argc; i++) {
-                  SEGGER_RTT_printf(0,"arg %d/%d: '%s'\n", i, cli_argc, cli_argv[i]);
-               }
+           if(pVcom->rx_count == 0)
+              __WFI();
+           bytes = vcom_bread(&g_hUsb,&g_rxBuff[0], 256);
 
-              dispatch_cli_command(cli_argc, cli_argv);
-
-              embedded_cli_prompt(&cli);
-
+           if(bytes > 0)
+            {
+             for(i=0; i<bytes; i++)
+              if (embedded_cli_insert_char(&cli, g_rxBuff[i])) {
+               int cli_argc;
+               char **cli_argv;
+               cli_argc = embedded_cli_argc(&cli, &cli_argv);
+               //for (int i = 0; i < cli_argc; i++) {
+               //   SEGGER_RTT_printf(0,"arg %d/%d: '%s'\n", i, cli_argc, cli_argv[i]);
+               //}
+             dispatch_cli_command(cli_argc, cli_argv);
+             embedded_cli_prompt(&cli);
             }
-          }
+           }
+         }
 
       }
