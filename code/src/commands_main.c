@@ -9,6 +9,7 @@
 #include "gpio_pin.h"
 #include "LPC17xx.h"
 #include "core_cm3.h"
+#include "test.h"
 
 // Top-level function to dispatch commands
 void dispatch_cli_command(int cli_argc, char **cli_argv) {
@@ -17,6 +18,9 @@ void dispatch_cli_command(int cli_argc, char **cli_argv) {
       return;
 
     char *command = cli_argv[0];
+    
+    if(command[0] == '#') // comment
+      return;
 
     // Array of known top-level commands
     const char *top_level_commands[] = {"set", "clear", "show","run","help","hwinfo","reset"};
@@ -183,7 +187,7 @@ void display_hwinfo() {
     vcom_printf("Hardware information:\n\r");
     vcom_printf("CPU ID: 0x%X\n\r",SCB->CPUID);
     vcom_printf("SystemCoreClock: %d\n\r",SystemCoreClock);
-    vcom_printf("Available SRAM: %dK\n\r",check_freemem());
+    vcom_printf("Available SRAM in first 32KB of LPC1769: %dK\n\r",check_freemem());
     vcom_printf("PINCON registers:\n\r");
     vcom_printf(" PINSEL0:      0x%X\n\r",LPC_PINCON->PINSEL0);
     vcom_printf(" PINSEL1:      0x%X\n\r",LPC_PINCON->PINSEL1);
@@ -210,6 +214,9 @@ void display_hwinfo() {
     vcom_printf(" PINMODE_OD2:  0x%X\n\r",LPC_PINCON->PINMODE_OD2);
     vcom_printf(" PINMODE_OD3:  0x%X\n\r",LPC_PINCON->PINMODE_OD3);
     vcom_printf(" PINMODE_OD4:  0x%X\n\r",LPC_PINCON->PINMODE_OD4);
+
+    vcom_printf(" output_cache_array_addr: 0x%X (this should be from RAM2 at 0x2007D000)\n\r",&output_cache);
+
 }
 
 

@@ -110,6 +110,7 @@ USB_INTERFACE_DESCRIPTOR *find_IntfDesc(const uint8_t *pDesc, uint32_t intfClass
  */
 int main(void)
 {
+
 	USBD_API_INIT_PARAM_T usb_param;
 	USB_CORE_DESCS_T desc;
 	ErrorCode_t ret = LPC_OK;
@@ -119,6 +120,8 @@ int main(void)
 	/* Initialize board and chip */
 	SystemCoreClockUpdate();
 	Board_Init();
+
+        //gpio_testfunc();
 
 	StopWatch_Init();
 
@@ -175,6 +178,8 @@ int main(void)
         uint8_t i,bytes;
 
         while (!done) {
+
+           delayMS(5);
 
            if(pVcom->rx_count == 0)
               __WFI();

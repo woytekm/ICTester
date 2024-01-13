@@ -211,6 +211,29 @@ uint32_t get_pin_direction(uint32_t bank_pin)
  }
 
 
+//void gpio_testfunc(void)
+// {
+//   uint8_t i,j;
+//
+//   init_pin_array(); // initialize analyzer pin data structures
+//   init_pins();      // initialize all pins to default state
+//   init_timers();
+//   init_leds();
+//   
+//   set_pin_write(G_pin_array[10].gpio_id);
+//   
+//   while(1)
+//    {
+//     set_pin_low(G_pin_array[10].gpio_id);
+//     for(i = 0; i < 2; i++)
+//      {j = i;}
+//     set_pin_high(G_pin_array[10].gpio_id);
+//     for(i = 0; i < 2; i++)
+//      {j = i;}
+//    }
+// }
+
+
 void init_pins(void)
 {
 

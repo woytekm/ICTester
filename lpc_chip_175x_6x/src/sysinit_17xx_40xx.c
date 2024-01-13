@@ -100,7 +100,7 @@ void Chip_SetupXtalClocking(void)
 	Chip_Clock_EnablePLL(SYSCTL_MAIN_PLL, SYSCTL_PLL_ENABLE);
 
 	/* 384MHz / (3+1) = 96MHz */
-	Chip_Clock_SetCPUClockDiv(3);
+	Chip_Clock_SetCPUClockDiv(2);
 	while (!Chip_Clock_IsMainPLLLocked()) {} /* Wait for the PLL to Lock */
 
 	Chip_Clock_EnablePLL(SYSCTL_MAIN_PLL, SYSCTL_PLL_CONNECT);

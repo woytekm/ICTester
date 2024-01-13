@@ -4,8 +4,10 @@
 
 #define MAX_TESTS 8
 #define MAX_FRAMES 64
-#define MAX_STATES 2048
+#define MAX_STATES 4096
 #define MAX_ALIASES 48
+
+#define STATE_ARRAY_ADDRESS 0x2008000000
 
 typedef struct {
   //uint32_t LPC_GPIOX_FIOSET_bitmap[5];   // pin set map
@@ -15,15 +17,19 @@ typedef struct {
   //uint32_t LPC_GPIOX_FIOPIN_bitmap[5];   // actual pin state read from registers
   //uint32_t LPC_GPIOX_FIOPIN_expected[5]; // expected pin state
 
-  uint8_t bank_bitmap[5];
-  uint8_t type;         // 0 - normal, contains 4 bank bitmaps in cells 1,2,3,4
-                        // 1 - loop to frame number bank_bitmap[0] until bank_counter = bank_bitmap[1] 
-                        // 2 - loop to frame number bank_bitmap[0] until bank_bitmap[1] loops passed
-  uint8_t use_counters;
-  // uint8_t bank_counter_assignment[5];
+  uint8_t bank_bitmap[5];   // actual values assigned to pins in each bank (OR loop parameters as below:)
+  uint8_t type;             // 0 - normal, contains 4 bank bitmaps in cells 1,2,3,4
+                            // 1 - loop to frame number bank_bitmap[0] until counter[bank_bitmap[2]] = bank_bitmap[1] 
+                            // 2 - loop to frame number bank_bitmap[0] until bank_bitmap[1] loops passed
+  uint8_t use_counters;     // bitmap telling if we should init counter with value, or increment existing value (or do nothing)
+                            // bits 0,1 - bank 1, bits 2,3 - bank 2, etc, 
+                            // values: 1: init counter with value and apply to bank 2: increment existing value and apply to bank
+  uint8_t counter_to_bank_assignment[5]; // one byte for each bank - tells which one of eight test counters is assigned to bank (if any) 0 - no counter assigned
   bool done;
 } test_frame_t;
 
+
+extern uint8_t output_cache[MAX_STATES][4];
 
 typedef struct {
     char test_name[20];
@@ -36,21 +42,21 @@ typedef struct {
     uint8_t frame_count;
     uint16_t frame_interval_ms;
     uint32_t iterations_done;
-    uint8_t counter_bank[9];
+    uint8_t counters[9];
 } test_data_t;
 
 
 typedef struct {
     uint8_t loop_type;  // 0 for BANK, 1 for LOOP
     uint8_t matched_value;
-    uint8_t bank_parameter;
+    uint8_t counter_parameter;
 } loop_conditions_t;
 
 // Enumerated type for pin state
 typedef enum {
     NO_LOOP,
     MATCH_LOOP,
-    MATCH_BANK
+    MATCH_COUNTER
 } loop_condition_type;
 
 // Array of test configurations

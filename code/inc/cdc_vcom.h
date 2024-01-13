@@ -62,6 +62,7 @@ typedef struct VCOM_DATA {
 	uint16_t rx_count;
 	volatile uint16_t tx_flags;
 	volatile uint16_t rx_flags;
+        uint8_t usbrx_pend;
 } VCOM_DATA_T;
 
 /**
@@ -84,7 +85,7 @@ ErrorCode_t vcom_init (USBD_HANDLE_T hUsb, USB_CORE_DESCS_T *pDesc, USBD_API_INI
  * @param	buf_len	: Length of the buffer passed
  * @return	Return number of bytes read.
  */
-uint32_t vcom_bread (uint8_t *pBuf, uint32_t buf_len);
+uint32_t vcom_bread (USBD_HANDLE_T hUsb, uint8_t *pBuf, uint32_t buf_len);
 
 /**
  * @brief	Virtual com port read routine

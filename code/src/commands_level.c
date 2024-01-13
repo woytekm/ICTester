@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <cr_section_macros.h>
+
 #include "commands.h"
 #include "cli_io.h"
 #include "gpio.h"
@@ -98,7 +100,7 @@ void cli_show_level_pin(int argc, char **argv) {
 void cli_show_level_bank(int argc, char **argv) {
 
     uint8_t bank_id = atoi(argv[0]),pin_level,pin_dir,i,bit_ctr=7;
-    char dir;
+    char dir = 'O';;
     char bitmap_str[9];
     char states[2] ={ '0','1'};
     bool bitmap = false;
@@ -152,7 +154,7 @@ void cli_show_level_bank(int argc, char **argv) {
 void cli_show_level_all(int argc, char **argv) {
 
    uint8_t pin_level,pin_dir,i,bit_ctr=7;
-   char dir;
+   char dir = 'O';
    char bitmap_str[5][9];
    uint8_t bank_counter = 0;
    char states[2] ={'0','1'};
@@ -388,7 +390,7 @@ void set_level_bank(uint8_t bank_id,uint8_t bitmap) {
      
     uint8_to_binary_string(bitmap,&bin_str); 
 
-    for(uint8_t i=0;i<PIN_COUNT;i++)
+    for(uint8_t i=(bank_id*10) ;i<((bank_id*10)+8);i++)
      {
       if( (G_pin_array[i].pin_id >= (bank_id*10)) && (G_pin_array[i].pin_id < ((bank_id*10)+10)) )
        if(G_pin_array[i].gpio_id != 255)
@@ -421,7 +423,7 @@ uint8_t read_level_bank(uint8_t bank_id) {
     uint8_t pin_level,bit_ctr=0;
     uint8_t bitmap = 0;
 
-    for(uint8_t i=0;i<PIN_COUNT;i++)
+    for(uint8_t i=(bank_id*10) ;i<((bank_id*10)+8);i++)
      {
       if( (G_pin_array[i].pin_id >= (bank_id*10)) && (G_pin_array[i].pin_id < ((bank_id*10)+10)) )
        if(G_pin_array[i].gpio_id != 255)

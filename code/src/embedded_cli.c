@@ -25,7 +25,7 @@ static void cli_putchar(struct embedded_cli *cli, char ch, bool is_last)
           }
 #endif
         cli->put_char(cli->cb_data, ch, is_last);
-        SEGGER_RTT_printf(0,"cli_putchar(): output: %X\n",ch);
+        //SEGGER_RTT_printf(0,"cli_putchar(): output: %X\n",ch);
     }
 }
 

@@ -31,6 +31,17 @@ void delayMS(unsigned int milliseconds) //Using Timer0
 	LPC_TIM0->TCR = 0x00; //Disable timer
 }
 
+void delayuS(unsigned int microseconds) //Using Timer0
+{
+        LPC_TIM2->TCR = 0x02; //Reset Timer
+
+        LPC_TIM2->TCR = 0x01; //Enable timer
+
+        while(LPC_TIM2->TC < microseconds); //wait until timer counter reaches the desired delay
+
+        LPC_TIM2->TCR = 0x00; //Disable timer
+}
+
 
 void initTimer2(void)
 {
@@ -39,8 +50,7 @@ void initTimer2(void)
         //LPC_SC->PCLKSEL0 &= ~(0x3<<3); //Set PCLK for timer = CCLK/4 = 96/4 (default)
 
         LPC_TIM2->CTCR = 0x0;
-        LPC_TIM2->PR = DEFAULT_TIM_2_PRESCALE; //Increment TC at every 23999+1 clock cycles
-        //25000 clock cycles @25Mhz = 1 mS
+        LPC_TIM2->PR = DEFAULT_TIM_2_PRESCALE; //Increment TC at every 24 clock cycles
 
         LPC_TIM2->TCR = 0x02; //Reset Timer
 }
@@ -85,7 +95,7 @@ void Timer1disable(void)
 
 void UpdateTimer1Prescale(uint32_t prescale)
  {
-  uint32_t TCR_save;
+  uint32_t TCR_save = 0x0;
   
   if(LPC_TIM1->TCR != 0x00)
    {
@@ -107,7 +117,8 @@ void TIMER1_IRQHandler(void)
 void init_timers(void)
  {
   initTimer0();
-//  initTimer1();
+  initTimer1();
+  initTimer2();
  }
 
 
