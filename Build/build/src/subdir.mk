@@ -16,6 +16,8 @@ C_SRCS += \
 ../code/src/commands_io.c \
 ../code/src/commands_clock.c \
 ../code/src/commands_test.c \
+../code/src/commands_test_criteria.c \
+../code/src/state_ops.c \
 ../code/src/gpio.c \
 ../code/src/timers.c \
 ../code/src/utils.c \
@@ -35,6 +37,8 @@ OBJS += \
 ./build/src/commands_io.o \
 ./build/src/commands_clock.o \
 ./build/src/commands_test.o \
+./build/src/commands_test_criteria.o \
+./build/src/state_ops.o \
 ./build/src/gpio.o \
 ./build/src/timers.o \
 ./build/src/utils.o \
@@ -55,7 +59,7 @@ build/src/%.o: ../code/src/%.c build/src/subdir.mk
 clean: clean-build-2f-src
 
 clean-build-2f-src:
-	-$(RM) ./build/src/cdc_desc.d ./build/src/cdc_desc.o ./build/src/cdc_main.d ./build/src/cdc_main.o ./build/src/cdc_vcom.d ./build/src/cdc_vcom.o ./build/src/cr_startup_lpc175x_6x.d ./build/src/cr_startup_lpc175x_6x.o ./build/src/sysinit.d ./build/src/sysinit.o ./build/src/embedded_cli.o ./build/src/cli_io.o ./build/src/commands_main.o ./build/src/commands_io.o ./build/src/commands_direction.o ./build/src/commands_level.o ./build/src/gpio.o ./build/src/timers.o ./build/src/commands_test.o ./build/src/test.o
+	-$(RM) ./build/src/cdc_desc.d ./build/src/cdc_desc.o ./build/src/cdc_main.d ./build/src/cdc_main.o ./build/src/cdc_vcom.d ./build/src/cdc_vcom.o ./build/src/cr_startup_lpc175x_6x.d ./build/src/cr_startup_lpc175x_6x.o ./build/src/sysinit.d ./build/src/sysinit.o ./build/src/embedded_cli.o ./build/src/cli_io.o ./build/src/commands_main.o ./build/src/commands_io.o ./build/src/commands_direction.o ./build/src/commands_level.o ./build/src/gpio.o ./build/src/timers.o ./build/src/commands_test.o ./build/src/test.o ./build/src/commands_test_criteria.o ./build/src/state_ops.o
 
 .PHONY: clean-build-2f-src
 

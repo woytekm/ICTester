@@ -1,0 +1,118 @@
+#PALCE16V8 investigation 
+set test name PALCE16V8
+set test frame-interval PALCE16V8 1
+set test io-settings PALCE16V8 255 255 0 0
+set test pin-alias PALCE16V8 40=CLK
+set test pin-alias PALCE16V8 41=OE
+set test pin-alias PALCE16V8 30=I1
+set test pin-alias PALCE16V8 31=I2
+set test pin-alias PALCE16V8 32=I3
+set test pin-alias PALCE16V8 33=I4
+set test pin-alias PALCE16V8 34=I5
+set test pin-alias PALCE16V8 35=I6
+set test pin-alias PALCE16V8 36=I7
+set test pin-alias PALCE16V8 37=I8
+set test pin-alias PALCE16V8 20=IO1
+set test pin-alias PALCE16V8 21=IO2
+set test pin-alias PALCE16V8 22=IO3
+set test pin-alias PALCE16V8 23=IO4
+set test pin-alias PALCE16V8 24=IO5
+set test pin-alias PALCE16V8 25=IO6
+set test pin-alias PALCE16V8 26=IO7
+set test pin-alias PALCE16V8 27=IO8
+set test frame PALCE16V8 0 0x0 0x0 0x0 0x0  CLK=H OE=H
+set test frame PALCE16V8 1 0x0 0x0 CTR1=0x0 0x0  CLK=H OE=L
+set test frame PALCE16V8 2 0x0 0x0 CTR1+ 0x0  CLK=L OE=L
+set test frame PALCE16V8 3 0x0 0x0 CTR1 0x0  CLK=H OE=L
+set test frame PALCE16V8 4 loop 2 until CTR1=0xFF
+
+
+#74LS161
+# toggle CLK until Q0 - Q4 counter overflows, setting CARY just before overflow
+set test name 74LS161
+set test frame-interval 74LS161 1
+set test io-settings 74LS161 255 255 0 0
+set test pin-alias 74LS161 30=RST
+set test pin-alias 74LS161 31=CLK
+set test pin-alias 74LS161 32=ENT
+set test pin-alias 74LS161 33=ENP
+set test pin-alias 74LS161 20=Q0
+set test pin-alias 74LS161 21=Q1
+set test pin-alias 74LS161 22=Q2
+set test pin-alias 74LS161 23=Q3
+set test pin-alias 74LS161 24=CARY
+set test frame 74LS161 0 0x0 0x0 0x0 0x0
+set test frame 74LS161 1 0x0 0x0 0x0 0x0 RST=H CLK=H ENT=H ENP=H
+set test frame 74LS161 2 0x0 0x0 0x0 0x0 RST=H CLK=L ENT=H ENP=H
+set test frame 74LS161 3 loop 1 until loop=16
+set test criteria 74LS161 0 ctr (Q0,Q1,Q2,Q3) from-frame 6 to-frame 7
+set test criteria 74LS161 1 ctr (Q0,Q1,Q2,Q3) from-frame 8 to-frame 9
+set test criteria 74LS161 2 ctr (Q0,Q1,Q2,Q3) from-frame 10 to-frame 11
+set test criteria 74LS161 3 ctr (Q0,Q1,Q2,Q3) from-frame 12 to-frame 13
+set test criteria 74LS161 4 ctr (Q0,Q1,Q2,Q3) from-frame 14 to-frame 15
+set test criteria 74LS161 5 ctr (Q0,Q1,Q2,Q3) from-frame 16 to-frame 17
+set test criteria 74LS161 6 ctr (Q0,Q1,Q2,Q3) from-frame 18 to-frame 19
+set test criteria 74LS161 7 ctr (Q0,Q1,Q2,Q3) from-frame 20 to-frame 21
+set test criteria 74LS161 8 ctr (Q0,Q1,Q2,Q3) from-frame 22 to-frame 23
+set test criteria 74LS161 9 ctr (Q0,Q1,Q2,Q3) from-frame 24 to-frame 25
+set test criteria 74LS161 10 val (Q0,Q1,Q2,Q3,CARY)=0x1F from-frame 31 to-frame 32
+
+
+#74LS51
+set test name 74LS51
+set test frame-interval 74LS51 1
+set test io-settings 74LS51 255 255 0 0
+set test pin-alias 74LS51 20=Y1
+set test pin-alias 74LS51 21=Y2
+set test pin-alias 74LS51 30=A1
+set test pin-alias 74LS51 31=B1
+set test pin-alias 74LS51 32=C1
+set test pin-alias 74LS51 33=D1
+set test pin-alias 74LS51 34=E1
+set test pin-alias 74LS51 35=F1
+set test pin-alias 74LS51 40=A2
+set test pin-alias 74LS51 41=B2
+set test pin-alias 74LS51 42=C2
+set test pin-alias 74LS51 43=D2
+set test frame 74LS51 0 0x0 0x0 CTR1=0x0 CTR2=0x0
+set test frame 74LS51 1 0x0 0x0 CTR1+ CTR2+ 
+set test frame 74LS51 2 loop 1 until CTR1=0x3F
+set test criteria 74LS51 0 expr Y1=!((A1_AND_B1_AND_C1)_OR_(D1_AND_E1_AND_F1))
+set test criteria 74LS51 1 expr Y2=!((A2_AND_B2)_OR_(C2_AND_D2))
+set test criteria 74LS51 2 val (Y1,Y2)=0x3 from-frame 16 to-frame 16
+
+
+#74LS74
+set test name 74LS74
+set test frame-interval 74LS74 1
+set test io-settings 74LS74 255 255 0 0
+set test pin-alias 74LS74 30=A1
+set test pin-alias 74LS74 31=B1
+set test pin-alias 74LS74 32=C1
+set test pin-alias 74LS74 33=A2
+set test pin-alias 74LS74 34=B2
+set test pin-alias 74LS74 35=C2
+set test pin-alias 74LS74 36=A3
+set test pin-alias 74LS74 37=B3
+set test pin-alias 74LS74 40=C3
+set test pin-alias 74LS74 20=1Y
+set test pin-alias 74LS74 21=2Y
+set test pin-alias 74LS74 22=3Y
+set test frame 74LS74 0 0x0 0x0 CTR1=0x0 0x0
+set test frame 74LS74 1 0x0 0x0 CTR1+ 0x0
+set test frame 74LS74 2 loop 1 until CTR1=0xFF
+set test frame 74LS74 3 0x0 0x0 CTR1=0x0 0x1
+set test frame 74LS74 4 0x0 0x0 CTR1+ 0x1
+set test frame 74LS74 5 loop 4 until CTR1=0xFF
+
+
+# bit banging speed test
+set test name speedtest
+set test frame-interval speedtest 1
+set test io-settings speedtest 0 255 255 255
+set test frame speedtest 0 0b00000000 0x0 0x0 0x0
+set test frame speedtest 1 0b00000010 0x0 0x0 0x0
+set test frame speedtest 2 0b00000000 0x0 0x0 0x0
+set test frame speedtest 3 0b00000010 0x0 0x0 0x0
+set test frame speedtest 4 loop 0 until loop=100
+

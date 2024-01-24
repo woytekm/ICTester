@@ -3,6 +3,9 @@
 #include "gpio_pin.h"
 #include "gpio.h"
 #include "timers.h"
+#include "SEGGER_RTT.h"
+#include "stdbool.h"
+#include "test.h"
 
 uint8_t G_gpio_map[] = {
     [0] = 255,
@@ -60,24 +63,39 @@ uint8_t G_clock_pin,G_clock_state;
 pin G_pin_array[PIN_COUNT];
 
 void init_pin_array(void) {
-    for (uint8_t i = 0; i < PIN_COUNT-1; ++i) {
-        uint8_t gpio_id = G_gpio_map[i];
 
-        G_pin_array[i].pin_id = i;
-        G_pin_array[i].gpio_id = gpio_id;
-        G_pin_array[i].direction = PIN_OUTPUT;
-        G_pin_array[i].level = PIN_LOW;
+    uint32_t gpio_bank_addrs[5] = {0x2009C000,0x2009C020,0x2009C040,0x2009C060,0x2009C080};
+    uint8_t gpio_id;
+
+    for (uint8_t i = 0; i < PIN_COUNT-1; ++i) {
+        gpio_id = G_gpio_map[i];
+        if(gpio_id != 255)
+         {
+          uint8_t bank = gpio_id / 100;
+
+          G_pin_array[i].gpio_addrs[0] = (uint32_t *)(gpio_bank_addrs[bank] + 0x1C); // CLR (set 0)
+          G_pin_array[i].gpio_addrs[1] = (uint32_t *)(gpio_bank_addrs[bank] + 0x18); // SET (set 1)
+          G_pin_array[i].gpio_addrs[2] = (uint32_t *)(gpio_bank_addrs[bank] + 0x14); // PIN (read)
+          G_pin_array[i].pin_id = i;
+          G_pin_array[i].gpio_id = gpio_id;
+          G_pin_array[i].gpio_pin_id = gpio_id % 100;
+          G_pin_array[i].direction = PIN_OUTPUT;
+          G_pin_array[i].level = PIN_LOW;
+         }
     }
 
     // special case for pin 47 (GPIO23) which cannot be used as OUTPUT
     G_pin_array[47].pin_id = 47;
     G_pin_array[47].gpio_id = G_gpio_map[47];
+    G_pin_array[47].gpio_pin_id = G_gpio_map[47] % 100;
     G_pin_array[47].direction = PIN_INPUT;
     G_pin_array[47].level = PIN_LOW;
 
     G_pin_array[47].direction = PIN_INPUT;
     G_pin_array[47].level = PIN_LOW;
-    
+    G_pin_array[47].gpio_addrs[0] = (uint32_t *)(gpio_bank_addrs[0] + 0x1C); // CLR (set 0)
+    G_pin_array[47].gpio_addrs[1] = (uint32_t *)(gpio_bank_addrs[0] + 0x18); // SET (set 1)
+    G_pin_array[47].gpio_addrs[2] = (uint32_t *)(gpio_bank_addrs[0] + 0x14); // PIN (read)
 }
 
 
@@ -87,16 +105,16 @@ void init_leds(void)
  set_pin_write(PIN_RED_LED);
  set_pin_write(PIN_YELLOW_LED);
 
- set_pin_high(PIN_GREEN_LED);
- set_pin_high(PIN_RED_LED);
- set_pin_high(PIN_YELLOW_LED);
+ set_pin_high_simple(PIN_GREEN_LED);
+ set_pin_high_simple(PIN_RED_LED);
+ set_pin_high_simple(PIN_YELLOW_LED);
 
  delayMS(200);
- set_pin_low(PIN_GREEN_LED);
+ set_pin_low_simple(PIN_GREEN_LED);
  delayMS(200);
- set_pin_low(PIN_RED_LED);
+ set_pin_low_simple(PIN_RED_LED);
  delayMS(200);
- set_pin_low(PIN_YELLOW_LED);
+ set_pin_low_simple(PIN_YELLOW_LED);
 }
 
 
@@ -132,11 +150,10 @@ void set_pin_read(uint32_t bank_pin)
    else
      LPC_GPIO0->FIODIR &= ~(1 << (uint32_t)(bank_pin));
 
-   set_pin_low(bank_pin);
+   set_pin_low_simple(bank_pin);
  }
 
-
-void set_pin_high(uint32_t bank_pin)
+void set_pin_high_simple(uint32_t bank_pin)
  {
    if(bank_pin>300)
      LPC_GPIO3->FIOSET = 1 << (uint32_t)(bank_pin - 300);
@@ -149,7 +166,7 @@ void set_pin_high(uint32_t bank_pin)
  }
 
 
-void set_pin_low(uint32_t bank_pin)
+void set_pin_low_simple(uint32_t bank_pin)
  {
    if(bank_pin>300)
      LPC_GPIO3->FIOCLR = 1 << (uint32_t)(bank_pin - 300);
@@ -160,6 +177,32 @@ void set_pin_low(uint32_t bank_pin)
    else
      LPC_GPIO0->FIOCLR = 1 << (uint32_t)(bank_pin);
  }
+
+
+void set_pin_high(uint32_t bank_pin, uint32_t *gpio_set_address)
+ {
+   uint32_t pin = bank_pin % 100;
+   *gpio_set_address = 1 << pin;
+ }
+
+
+void set_pin_low(uint32_t bank_pin, uint32_t *gpio_clr_address)
+ {
+   uint32_t pin = bank_pin % 100;
+   *gpio_clr_address = 1 << pin;
+ }
+
+void set_pin_high_fast(uint32_t pin, uint32_t *gpio_set_address)
+ {
+   *gpio_set_address = 1 << pin;
+ }
+
+
+void set_pin_low_fast(uint32_t pin, uint32_t *gpio_clr_address)
+ {
+   *gpio_clr_address = 1 << pin;
+ }
+
 
 void toggle_pin(uint32_t bank_pin)
  {
@@ -189,6 +232,46 @@ uint32_t get_pin(uint32_t bank_pin)
   if(pin_state > 0)
     return 1;
   else return 0;
+ }
+
+
+uint32_t get_pin_aliased(char *pin_alias,char pin_aliases[48][5])
+ {
+
+   uint8_t pin_state = 0,bank_pin;
+   int alias_index = -1;
+
+   for (int j = 0; j < MAX_ALIASES; ++j) {
+     if(strlen(pin_aliases[j]) != 0)
+       {
+         if (strcmp(pin_alias, pin_aliases[j]) == 0) {
+            alias_index = j;
+            break;
+         }
+      }
+    }
+   
+   bank_pin = G_gpio_map[alias_index];
+
+   if(bank_pin>300)
+     pin_state = LPC_GPIO3->FIOPIN & (1<<(bank_pin - 300));
+   else if(bank_pin>200)
+     pin_state = LPC_GPIO2->FIOPIN & (1<<(bank_pin - 200));
+   else if(bank_pin>100)
+     pin_state = LPC_GPIO1->FIOPIN & (1<<(bank_pin - 100));
+   else
+     pin_state = LPC_GPIO0->FIOPIN & (1<<bank_pin);
+
+  if(pin_state > 0)
+    return 1;
+  else return 0;
+ }
+
+
+
+uint32_t get_pin_fast(uint32_t pin, uint32_t *fiopin_addr)
+ {
+  return (((*fiopin_addr & (1<<pin)) == 0) ? 0 : 1);
  }
 
 
@@ -253,7 +336,7 @@ void init_pins(void)
     // Init [0]25 (DUT power control) separately
     Chip_IOCON_PinMux(LPC_IOCON, 0, 25, IOCON_MODE_PULLDOWN, IOCON_FUNC0);
     set_pin_write(25);
-    set_pin_low(25);
+    set_pin_low_simple(25);
 
     // set all pins used for tester I/O to output/LOW
     for (uint8_t i = 1; i < sizeof(G_gpio_map) / sizeof(G_gpio_map[0]); ++i) {
@@ -263,14 +346,14 @@ void init_pins(void)
          {
           set_pin_write(G_pin_array[pin_id].gpio_id);
           if(G_pin_array[pin_id].level == PIN_LOW)
-            set_pin_low(G_pin_array[pin_id].gpio_id);
+            set_pin_low_simple(G_pin_array[pin_id].gpio_id);
           else if (G_pin_array[pin_id].level == PIN_HIGH)
-            set_pin_high(G_pin_array[pin_id].gpio_id);
+            set_pin_high_simple(G_pin_array[pin_id].gpio_id);
          }
         else if (G_pin_array[pin_id].direction == PIN_INPUT)
          {
           set_pin_read(G_pin_array[pin_id].gpio_id);
-          set_pin_low(G_pin_array[pin_id].gpio_id);
+          set_pin_low_simple(G_pin_array[pin_id].gpio_id);
          }
     }
     

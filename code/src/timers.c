@@ -31,7 +31,7 @@ void delayMS(unsigned int milliseconds) //Using Timer0
 	LPC_TIM0->TCR = 0x00; //Disable timer
 }
 
-void delayuS(unsigned int microseconds) //Using Timer0
+void delayuS(unsigned int microseconds) //Using Timer2
 {
         LPC_TIM2->TCR = 0x02; //Reset Timer
 
@@ -46,7 +46,7 @@ void delayuS(unsigned int microseconds) //Using Timer0
 void initTimer2(void)
 {
         /*Assuming that PLL0 has been setup with CCLK = 96Mhz and PCLK = 24Mhz.*/
-        LPC_SC->PCONP |= (1<<22); //Power up TIM0. By default TIM0 and TIM1 are enabled.
+        LPC_SC->PCONP |= (1<<22); //Power up TIM2.
         //LPC_SC->PCLKSEL0 &= ~(0x3<<3); //Set PCLK for timer = CCLK/4 = 96/4 (default)
 
         LPC_TIM2->CTCR = 0x0;

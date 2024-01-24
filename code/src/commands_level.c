@@ -242,11 +242,11 @@ void cli_set_level_pin(int argc, char **argv) {
                 // Set the pin level based on the provided pin_state
                 switch (level) {
                     case PIN_LOW:
-                        set_pin_low(gpio_id);
+                        set_pin_low(gpio_id,G_pin_array[pin_id].gpio_addrs[CLR_ADDR]);
                         G_pin_array[pin_id].level =  PIN_LOW;
                         break;
                     case PIN_HIGH:
-                        set_pin_high(gpio_id);
+                        set_pin_high(gpio_id,G_pin_array[pin_id].gpio_addrs[SET_ADDR]);
                         G_pin_array[pin_id].level =  PIN_HIGH;
                         break;
                     default:
@@ -309,11 +309,11 @@ void cli_set_level_bank(int argc, char **argv) {
               {
                switch (level) {
                 case PIN_LOW:
-                   set_pin_low(G_pin_array[i].gpio_id);
+                   set_pin_low(G_pin_array[i].gpio_id,G_pin_array[i].gpio_addrs[CLR_ADDR]);
                    G_pin_array[i].level =  PIN_LOW;
                    break;
                 case PIN_HIGH:
-                   set_pin_high(G_pin_array[i].gpio_id);
+                   set_pin_high(G_pin_array[i].gpio_id,G_pin_array[i].gpio_addrs[SET_ADDR]);
                    G_pin_array[i].level =  PIN_HIGH;
                    break;
                 default:
@@ -325,11 +325,11 @@ void cli_set_level_bank(int argc, char **argv) {
              {
                switch (argv[1][bit_ctr]) {
                 case '0':
-                   set_pin_low(G_pin_array[i].gpio_id);
+                   set_pin_low(G_pin_array[i].gpio_id,G_pin_array[i].gpio_addrs[CLR_ADDR]);
                    G_pin_array[i].level =  PIN_LOW;
                    break;
                 case '1':
-                   set_pin_high(G_pin_array[i].gpio_id);
+                   set_pin_high(G_pin_array[i].gpio_id,G_pin_array[i].gpio_addrs[SET_ADDR]);
                    G_pin_array[i].level =  PIN_HIGH;
                    break;
                 default:
@@ -366,11 +366,11 @@ void cli_set_level_all(int argc, char **argv) {
               }
             switch (level) {
                case PIN_LOW:
-                   set_pin_low(G_pin_array[i].gpio_id);
+                   set_pin_low(G_pin_array[i].gpio_id,G_pin_array[i].gpio_addrs[CLR_ADDR]);
                    G_pin_array[i].level =  PIN_LOW;
                    break;
                case PIN_HIGH:
-                   set_pin_high(G_pin_array[i].gpio_id);
+                   set_pin_high(G_pin_array[i].gpio_id,G_pin_array[i].gpio_addrs[SET_ADDR]);
                    G_pin_array[i].level =  PIN_HIGH;
                    break;
                default:
@@ -384,7 +384,7 @@ void cli_set_level_all(int argc, char **argv) {
 }
 
 
-void set_level_bank(uint8_t bank_id,uint8_t bitmap) {
+void set_level_bank3(uint8_t bank_id,uint8_t bitmap) {
     uint8_t bit_ctr = 9; // start counting from less significant bit
     char bin_str[11];
      
@@ -401,12 +401,12 @@ void set_level_bank(uint8_t bank_id,uint8_t bitmap) {
               }
                 switch (bin_str[bit_ctr]) {
                 case '0':
-                   set_pin_low(G_pin_array[i].gpio_id);
+                   set_pin_low_simple(G_pin_array[i].gpio_id);
                    G_pin_array[i].level =  PIN_LOW;
                    break;
 
                case '1':
-                   set_pin_high(G_pin_array[i].gpio_id);
+                   set_pin_high_simple(G_pin_array[i].gpio_id);
                    G_pin_array[i].level =  PIN_HIGH;
                    break;
                 default:
@@ -417,22 +417,144 @@ void set_level_bank(uint8_t bank_id,uint8_t bitmap) {
      }
   }
 
+void set_level_bank2(uint8_t bank_id,uint8_t bitmap) {
+
+
+    // G_pin_array[pin].gpio_pin_id         - precalculated GPIO number in physical pin register (0,1,2,3)
+    // G_pin_array[pin].gpio_addrs[pinval]  - precalculated physical GPIO address for bit set/clear operations (pinval can be 0 or 1)
+
+    uint8_t pin = bank_id*10,pinval;  // we are starting from pin x0 in device bank (if bank = 1, then start from pin id 10 - id from G_pin_array)
+    uint8_t mask = 0b00000001;
+
+    void (*ops[2]) (uint32_t gpio_id, uint32_t *gpio_addr);
+
+    ops[0] = set_pin_low;
+    ops[1] = set_pin_high;
+
+    pinval = bitmap & mask;
+    (*ops[pinval])(G_pin_array[pin].gpio_id,G_pin_array[pin].gpio_addrs[pinval]);
+
+    pin++;
+    pinval = (bitmap >> 1) & mask;
+    (*ops[pinval])(G_pin_array[pin].gpio_id,G_pin_array[pin].gpio_addrs[pinval]);
+
+    pin++;
+    pinval = (bitmap >> 2) & mask;
+    (*ops[pinval])(G_pin_array[pin].gpio_id,G_pin_array[pin].gpio_addrs[pinval]);
+
+    pin++;
+    pinval = (bitmap >> 3) & mask;
+    (*ops[pinval])(G_pin_array[pin].gpio_id,G_pin_array[pin].gpio_addrs[pinval]);
+
+    pin++;
+    pinval = (bitmap >> 4) & mask;
+    (*ops[pinval])(G_pin_array[pin].gpio_id,G_pin_array[pin].gpio_addrs[pinval]);
+
+    pin++;
+    pinval = (bitmap >> 5) & mask;
+    (*ops[pinval])(G_pin_array[pin].gpio_id,G_pin_array[pin].gpio_addrs[pinval]);
+
+    pin++;
+    pinval = (bitmap >> 6) & mask;
+    (*ops[pinval])(G_pin_array[pin].gpio_id,G_pin_array[pin].gpio_addrs[pinval]);
+
+    pin++;
+    pinval = (bitmap >> 7) & mask;
+    (*ops[pinval])(G_pin_array[pin].gpio_id,G_pin_array[pin].gpio_addrs[pinval]);
+
+  }
+
+
+void set_level_bank(uint8_t bank_id,uint8_t bitmap) {
+  
+
+    // G_pin_array[pin].gpio_pin_id         - precalculated GPIO number in physical pin register (0,1,2,3)
+    // G_pin_array[pin].gpio_addrs[pinval]  - precalculated physical GPIO address for bit set/clear operations (pinval can be 0 or 1)
+ 
+    uint8_t pin = bank_id*10,pinval;  // we are starting from pin x0 in device bank (if bank = 1, then start from pin id 10 - id from G_pin_array)
+    uint8_t mask = 0b00000001;
+
+    void (*ops[2]) (uint32_t gpio_id, uint32_t *gpio_addr);
+
+    ops[0] = set_pin_low_fast;
+    ops[1] = set_pin_high_fast;   
+
+    pinval = bitmap & mask;
+    (*ops[pinval])(G_pin_array[pin].gpio_pin_id,G_pin_array[pin].gpio_addrs[pinval]);
+    vcom_printf( "set phys pin id %d, gpio addr: %X \r\n",G_pin_array[pin].gpio_pin_id,bank_id,G_pin_array[pin].gpio_addrs[pinval]);
+  
+    pin++;
+    pinval = (bitmap >> 1) & mask;
+    (*ops[pinval])(G_pin_array[pin].gpio_pin_id,G_pin_array[pin].gpio_addrs[pinval]);
+    vcom_printf( "set phys pin id %d, gpio addr: %X \r\n",G_pin_array[pin].gpio_pin_id,bank_id,G_pin_array[pin].gpio_addrs[pinval]);
+
+    pin++;
+    pinval = (bitmap >> 2) & mask;
+    (*ops[pinval])(G_pin_array[pin].gpio_pin_id,G_pin_array[pin].gpio_addrs[pinval]);
+    vcom_printf( "set phys pin id %d, gpio addr: %X \r\n",G_pin_array[pin].gpio_pin_id,bank_id,G_pin_array[pin].gpio_addrs[pinval]);
+  
+    pin++; 
+    pinval = (bitmap >> 3) & mask;
+    (*ops[pinval])(G_pin_array[pin].gpio_pin_id,G_pin_array[pin].gpio_addrs[pinval]);
+    vcom_printf( "set phys pin id %d, gpio addr: %X \r\n",G_pin_array[pin].gpio_pin_id,bank_id,G_pin_array[pin].gpio_addrs[pinval]);
+
+    pin++;
+    pinval = (bitmap >> 4) & mask;
+    (*ops[pinval])(G_pin_array[pin].gpio_pin_id,G_pin_array[pin].gpio_addrs[pinval]);
+    vcom_printf( "set phys pin id %d, gpio addr: %X \r\n",G_pin_array[pin].gpio_pin_id,bank_id,G_pin_array[pin].gpio_addrs[pinval]);
+
+    pin++;
+    pinval = (bitmap >> 5) & mask;
+    (*ops[pinval])(G_pin_array[pin].gpio_pin_id,G_pin_array[pin].gpio_addrs[pinval]);
+    vcom_printf( "set phys pin id %d, gpio addr: %X \r\n",G_pin_array[pin].gpio_pin_id,bank_id,G_pin_array[pin].gpio_addrs[pinval]);
+
+    pin++;
+    pinval = (bitmap >> 6) & mask;
+    (*ops[pinval])(G_pin_array[pin].gpio_pin_id,G_pin_array[pin].gpio_addrs[pinval]);
+    vcom_printf( "set phys pin id %d, gpio addr: %X \r\n",G_pin_array[pin].gpio_pin_id,bank_id,G_pin_array[pin].gpio_addrs[pinval]);
+
+    pin++;
+    pinval = (bitmap >> 7) & mask;
+    (*ops[pinval])(G_pin_array[pin].gpio_pin_id,G_pin_array[pin].gpio_addrs[pinval]);
+    vcom_printf( "set phys pin id %d, gpio addr: %X \r\n",G_pin_array[pin].gpio_pin_id,bank_id,G_pin_array[pin].gpio_addrs[pinval]);
+   
+  }
+
 
 uint8_t read_level_bank(uint8_t bank_id) {
 
-    uint8_t pin_level,bit_ctr=0;
-    uint8_t bitmap = 0;
+ uint8_t pin = bank_id*10,pinval,bitmap=0;
+ 
+ pinval = get_pin_fast(G_pin_array[pin].gpio_pin_id,G_pin_array[pin].gpio_addrs[READ_ADDR]);
+ bitmap |= (pinval << 0);
 
-    for(uint8_t i=(bank_id*10) ;i<((bank_id*10)+8);i++)
-     {
-      if( (G_pin_array[i].pin_id >= (bank_id*10)) && (G_pin_array[i].pin_id < ((bank_id*10)+10)) )
-       if(G_pin_array[i].gpio_id != 255)
-         {
-          pin_level = get_pin(G_pin_array[i].gpio_id);
-          bitmap |= pin_level << bit_ctr;
-          bit_ctr++;
-          }
-     }
+ pin++;
+ pinval = get_pin_fast(G_pin_array[pin].gpio_pin_id,G_pin_array[pin].gpio_addrs[READ_ADDR]);
+ bitmap |= (pinval << 1);
+
+ pin++;
+ pinval = get_pin_fast(G_pin_array[pin].gpio_pin_id,G_pin_array[pin].gpio_addrs[READ_ADDR]);
+ bitmap |= (pinval << 2);
+
+ pin++;
+ pinval = get_pin_fast(G_pin_array[pin].gpio_pin_id,G_pin_array[pin].gpio_addrs[READ_ADDR]);
+ bitmap |= (pinval << 3);
+
+ pin++;
+ pinval = get_pin_fast(G_pin_array[pin].gpio_pin_id,G_pin_array[pin].gpio_addrs[READ_ADDR]);
+ bitmap |= (pinval << 4);
+
+ pin++;
+ pinval = get_pin_fast(G_pin_array[pin].gpio_pin_id,G_pin_array[pin].gpio_addrs[READ_ADDR]);
+ bitmap |= (pinval << 5);
+ 
+ pin++;
+ pinval = get_pin_fast(G_pin_array[pin].gpio_pin_id,G_pin_array[pin].gpio_addrs[READ_ADDR]);
+ bitmap |= (pinval << 6);
+
+ pin++;
+ pinval = get_pin_fast(G_pin_array[pin].gpio_pin_id,G_pin_array[pin].gpio_addrs[READ_ADDR]);
+ bitmap |= (pinval << 7);
 
  return bitmap;
 

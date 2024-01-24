@@ -161,15 +161,20 @@ int main(void)
 		}
 	}
 
+        SEGGER_RTT_printf(0,"init_pin_array:\n");
 
         init_pin_array(); // initialize analyzer pin data structures
 
+        SEGGER_RTT_printf(0,"init_pins:\n");
         init_pins();      // initialize all pins to default state
 
+        SEGGER_RTT_printf(0,"init_timers:\n");
         init_timers();
 
+        SEGGER_RTT_printf(0,"init_leds:\n");
         init_leds();
 
+        SEGGER_RTT_printf(0,"start CLI:\n");
         bool done = false;
 
         embedded_cli_init(&cli, "ICTester#", vcom_putch, stdout);

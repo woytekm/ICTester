@@ -78,6 +78,11 @@ extern uint32_t SystemCoreClock;
 
 #define PIN_DUT_POWER 25
 
+
+#define SET_ADDR 0
+#define CLR_ADDR 1
+#define READ_ADDR 2
+
 // Enumerated type for pin direction
 typedef enum {
     PIN_INPUT,
@@ -96,6 +101,8 @@ typedef struct {
     pin_level level;  // Pin direction: PIN_INPUT or PIN_OUTPUT
     pin_direction direction;         // Pin state: PIN_LOW or PIN_HIGH
     uint32_t gpio_id;     // Actual GPIO number for LPC1769 GPIO mapping
+    uint32_t gpio_pin_id;
+    uint32_t *gpio_addrs[3];
 } pin;
 
 // Array of pin structs

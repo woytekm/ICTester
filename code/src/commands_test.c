@@ -10,6 +10,7 @@
 #include "gpio.h"
 #include "gpio_pin.h"
 #include "test.h"
+#include "state_ops.h"
 
 
 uint16_t cache_entries;
@@ -98,6 +99,8 @@ void cli_set_test(int argc, char **argv) {
         cli_set_test_io_settings(argc - 1, argv + 1);
     } else if (strcmp(subcommand_set_level, "pin-alias") == 0) {
         cli_set_test_pin_alias(argc - 1, argv + 1);
+    } else if (strcmp(subcommand_set_level, "criteria") == 0) {
+        cli_set_test_criteria(argc - 1, argv + 1);
     } else {
         vcom_printf( "unknown subcommand for 'set test': %s\n\r", subcommand_set_level);
     }
@@ -233,27 +236,27 @@ void apply_test_frame(uint8_t *io_settings,test_frame_t *frame,uint8_t *test_sta
     frame->done = true;
  }
 
-void apply_cached_frame(uint8_t *io_settings,test_frame_t *frame,uint8_t *test_states,uint16_t iter)
+void apply_cached_frame(uint8_t *io_settings,uint8_t *test_states,uint16_t iter, uint8_t *read_banks, uint8_t *write_banks)
  {
-     for(uint8_t i = 1; i < 5; i++)
-      if(io_settings[i] == 0)
-       {
-         set_level_bank(i,G_output_cache[iter][i]);
-         test_states[i] = frame->bank_bitmap[i];
-       }
-    //delayuS(1);
-    for(uint8_t i = 1; i < 5; i++)
-     if(io_settings[i] == 255)
-       {
-         frame->bank_bitmap[i] =  read_level_bank(i);
-         test_states[i] = r_bitmap;
-       }
+    uint8_t ctr = 0;
+
+    while(write_banks[ctr++] != 0x0)
+     {
+       set_level_bank(write_banks[ctr-1],G_output_cache[iter][write_banks[ctr-1]]);
+       test_states[write_banks[ctr-1]] = G_output_cache[iter][write_banks[ctr-1]];
+     }
+
+    ctr = 0;
+
+    while(read_banks[ctr++] != 0x0)
+     {
+       test_states[read_banks[ctr-1]] = read_level_bank(read_banks[ctr-1]);
+     }
  }
 
 
 void cache_test_frame(uint8_t *io_settings,test_frame_t *frame,uint8_t *test_states,uint8_t *test_counters, uint16_t iter)
  {
-    uint8_t r_bitmap = 0;
     uint8_t use_counters[5];
 
     use_counters[1] = extract_bits(frame->use_counters,0,1);
@@ -268,7 +271,7 @@ void cache_test_frame(uint8_t *io_settings,test_frame_t *frame,uint8_t *test_sta
           {
            G_output_cache[iter][i] = frame->bank_bitmap[i];
           }
-         if(use_counters[i] == 1)  // load counter value from frame and apply to bank
+         else if(use_counters[i] == 1)  // load counter value from frame and apply to bank
           {
             test_counters[frame->counter_to_bank_assignment[i]] = frame->bank_bitmap[i];
             G_output_cache[iter][i] = frame->bank_bitmap[i];
@@ -276,6 +279,10 @@ void cache_test_frame(uint8_t *io_settings,test_frame_t *frame,uint8_t *test_sta
          else if(use_counters[i] == 2) // increase counter value by 1 and apply to bank
           {
             test_counters[frame->counter_to_bank_assignment[i]]++;
+            G_output_cache[iter][i] = test_counters[frame->counter_to_bank_assignment[i]];
+          }
+         else if(use_counters[i] == 3) // take actual counter value and apply to bank
+          {
             G_output_cache[iter][i] = test_counters[frame->counter_to_bank_assignment[i]];
           }
 
@@ -293,12 +300,15 @@ void cli_run_test(int argc, char** argv) {
     char bank[2];
     char cmd1[10];
     char cmd2[10];
+    uint8_t read_banks[4];
+    uint8_t write_banks[4];
 
     //uint8_t bank_counters[5];
     uint8_t counter_match_val = 0;
     uint8_t counter_to_match = 0;
     bool reached_counter_match = false;
     bool in_counter_match_loop = false;
+    bool state_overflow = false;
     uint16_t loops = 0;
 
     uint8_t _argc;
@@ -321,6 +331,8 @@ void cli_run_test(int argc, char** argv) {
     // set bank direction according to test settings
     vcom_printf("* running test setup...\r\n");
 
+    uint8_t r = 0,w = 0;
+
     for(uint8_t i = 1; i < 5; i++)
      {
       _argc = 2;
@@ -332,35 +344,18 @@ void cli_run_test(int argc, char** argv) {
           strcpy(dir,"O");
           args[1] = (char *)&dir;
           cli_set_direction_bank(_argc,args);
+          write_banks[w++]=i;
         }
       else if(G_test_array[test_index]->io_settings[i] == 255)
         {
           strcpy(dir,"I");
           args[1] = (char *)&dir;
           cli_set_direction_bank(_argc,args);
+          read_banks[r++]=i;
         }
      }
 
-    vcom_printf("* enabling banks...\r\n");
-    for(uint8_t i = 1; i < 5; i++)
-     {
-      _argc = 3;
-      sprintf(bank,"%d",i);
-      args[1] = (char *)&bank;
-      sprintf(cmd1,"bank");
-      args[0] = (char *)&cmd1;
-      sprintf(cmd2,"enable");
-      args[2] = (char *)&cmd2;
-      cli_set_io(_argc,args);
-     }
-
-    vcom_printf("* enabling DUT power...\r\n");
-    _argc = 1;
-    sprintf(cmd1,"enable");
-    args[0] = (char *)&cmd1;
-    cli_set_dut_power(_argc,args);
- 
-    delayMS(1000); 
+    write_banks[w] = read_banks[r] = 0x0;
 
     vcom_printf("* generating test data for %s...\r\n",G_test_array[test_index]->test_name);
 
@@ -409,39 +404,103 @@ void cli_run_test(int argc, char** argv) {
      else // regular frame with bank bitmaps
       {
         G_test_array[test_index]->test_states[G_test_array[test_index]->iterations_done][0] = i;
-        apply_test_frame(G_test_array[test_index]->io_settings,G_test_array[test_index]->test_frames[i],G_test_array[test_index]->test_states[G_test_array[test_index]->iterations_done],G_test_array[test_index]->counters);
+        cache_test_frame(G_test_array[test_index]->io_settings,G_test_array[test_index]->test_frames[i],G_test_array[test_index]->test_states[G_test_array[test_index]->iterations_done],G_test_array[test_index]->counters,G_test_array[test_index]->iterations_done);
         G_test_array[test_index]->iterations_done++;
         if(G_test_array[test_index]->iterations_done > MAX_STATES)
          {
            vcom_printf("ERROR: state table overflow (%d). Aborting test.\r\n",MAX_STATES);
+           state_overflow = true;
            break;
          }
         //delayuS(G_test_array[test_index]->frame_interval_ms);
        }
     }
- 
-    delayMS(1000);
- 
-    vcom_printf("* disabling DUT power...\r\n");
-    _argc = 1;
-    sprintf(cmd1,"disable");
-    args[0] = (char *)&cmd1;
-    cli_set_dut_power(_argc,args);
 
-    vcom_printf("* disabling banks...\r\n");
-    for(uint8_t i = 1; i < 5; i++)
+    if(!state_overflow)
      {
-      _argc = 3;
-      sprintf(bank,"%d",i);
-      args[1] = (char *)&bank;
-      sprintf(cmd1,"bank");
-      args[0] = (char *)&cmd1;
-      sprintf(cmd2,"disable");
-      args[2] = (char *)&cmd2;
-      cli_set_io(_argc,args);
-     }
 
-    vcom_printf("* test run finished.\r\n");
+      vcom_printf("* enabling banks...\r\n");
+      for(uint8_t i = 1; i < 5; i++)
+       {
+        _argc = 3;
+        sprintf(bank,"%d",i);
+        args[1] = (char *)&bank;
+        sprintf(cmd1,"bank");
+        args[0] = (char *)&cmd1;
+        sprintf(cmd2,"enable");
+        args[2] = (char *)&cmd2;
+        cli_set_io(_argc,args);
+       }
+
+      vcom_printf("* enabling DUT power...\r\n");
+      _argc = 1;
+      sprintf(cmd1,"enable");
+      args[0] = (char *)&cmd1;
+      cli_set_dut_power(_argc,args);
+
+      delayMS(1000);
+
+      vcom_printf("* running test...\r\n");
+
+      uint8_t ctr = 0;
+
+      for(uint16_t k = 0; k < G_test_array[test_index]->iterations_done; k++)
+        {
+
+         ctr = 0;
+         while(write_banks[ctr++] != 0x0)
+          {
+           set_level_bank3(write_banks[ctr-1],G_output_cache[k][write_banks[ctr-1]]);
+           G_test_array[test_index]->test_states[k][write_banks[ctr-1]] = G_output_cache[k][write_banks[ctr-1]];
+          }
+
+         ctr = 0;
+         while(read_banks[ctr++] != 0x0)
+          {
+           G_test_array[test_index]->test_states[k][read_banks[ctr-1]] = read_level_bank(read_banks[ctr-1]);
+          }
+
+         delayMS(G_test_array[test_index]->frame_interval_ms);
+        }
+
+ 
+      delayMS(1000);
+ 
+      vcom_printf("* disabling DUT power...\r\n");
+      _argc = 1;
+      sprintf(cmd1,"disable");
+      args[0] = (char *)&cmd1;
+      cli_set_dut_power(_argc,args);
+
+      vcom_printf("* disabling banks...\r\n");
+      for(uint8_t i = 1; i < 5; i++)
+       {
+        _argc = 3;
+        sprintf(bank,"%d",i);
+        args[1] = (char *)&bank;
+        sprintf(cmd1,"bank");
+        args[0] = (char *)&cmd1;
+        sprintf(cmd2,"disable");
+        args[2] = (char *)&cmd2;
+        cli_set_io(_argc,args);
+       }
+
+      vcom_printf("* checking test criteria...\r\n");
+
+      ctr = 0;
+
+      while(G_test_array[test_index]->test_criteria[ctr] != NULL)
+       {
+        check_test_criteria(test_index,ctr);
+        ctr++;
+       }
+
+      if(ctr == 0)
+        vcom_printf("* no criteria defined.\r\n");
+        
+      vcom_printf("* test run finished (%d iterations).\r\n",G_test_array[test_index]->iterations_done);
+
+     }
  
 }
 
@@ -557,6 +616,7 @@ void cli_set_test_name(int argc, char** argv) {
         memset(new_test->io_settings,0,5);
         memset(new_test->test_frames,0,sizeof(new_test->test_frames));
         memset(new_test->pin_aliases,0x0,sizeof(new_test->pin_aliases));
+        memset(new_test->test_criteria,0x0,sizeof(new_test->test_criteria));
 
         printf("test created: %s\n\r", new_test_name);
     } else {
@@ -746,7 +806,7 @@ bool parse_bank_setting(char *arg, uint8_t *bank_bitmap, uint8_t *use_counters, 
        else if((strlen(arg) == 5) && (arg[strlen(arg)-1] == '+'))  // parameter in form of CTRx+, where x is integer from 1 to 8 - increment counter x by 1 and set the value in the bank
          {
           arg[strlen(arg)-1] = 0x0;  // cut "+" off from "CTRx+"
-          counter = atoi(arg+3);     // this should be x from "CTRx+ parameter"
+          counter = atoi(arg+3);     // this should be x from "CTRx+" parameter
           arg[strlen(arg)-1] = 0x0;
           if(strcmp(arg, "CTR") != 0)
            {
@@ -770,6 +830,37 @@ bool parse_bank_setting(char *arg, uint8_t *bank_bitmap, uint8_t *use_counters, 
               break;
             case 4:
               set_bits(use_counters,6,7,2);
+              break;
+          }
+          bank_setting = 0x0;
+          *counter_to_bank = counter;
+         }
+       else if((strlen(arg) == 4) && (arg[0] == 'C') && (arg[1] == 'T') && (arg[2] == 'R'))  // parameter in form of CTRx, where x is integer from 1 to 8 - take counter x and set it's value in the bank
+         {
+          counter = atoi(arg+3);     // this should be x from "CTRx" parameter
+          arg[strlen(arg)-1] = 0x0;
+          if(strcmp(arg, "CTR") != 0)
+           {
+            vcom_printf("ERROR: %s should be a counter specification (CTRx), where x is 1 to 8\n\r", arg);
+            return false;
+           }
+          if((counter < 1) || (counter > 8))
+            {
+             vcom_printf("ERROR: invalid counter specified: %d (should be between 1 and 8)\n\r", counter);
+             return false;
+            }
+          switch(bank_id) {
+            case 1:
+              set_bits(use_counters,0,1,3);
+              break;
+            case 2:
+              set_bits(use_counters,2,3,3);
+              break;
+            case 3:
+              set_bits(use_counters,4,5,3);
+              break;
+            case 4:
+              set_bits(use_counters,6,7,3);
               break;
           }
           bank_setting = 0x0;
@@ -908,6 +999,20 @@ void cli_set_test_frame(int argc, char** argv) {
 }
 
 
+uint8_t alias_to_pin_id(char *alias, char pin_aliases[48][5])
+ {
+   for (uint8_t i = 0; i < MAX_ALIASES; ++i) {
+      if(strlen(pin_aliases[i]) != 0)
+         {
+           if (strcmp(alias, pin_aliases[i]) == 0) {
+              return i; 
+            }
+         }
+       } 
+   return 255;
+ }
+
+
 bool parse_pin_alias_params(int argc, char** argv, uint8_t *bank_bitmap, char pin_aliases[48][5])
 {
 
@@ -925,7 +1030,6 @@ bool parse_pin_alias_params(int argc, char** argv, uint8_t *bank_bitmap, char pi
             for (int j = 0; j < MAX_ALIASES; ++j) {
              if(strlen(pin_aliases[j]) != 0)
               {
-                
                 if (strcmp(argv[i], pin_aliases[j]) == 0) {
                    alias_index = j;
                    alias_found = true;

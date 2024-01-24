@@ -7,6 +7,9 @@
 #define MAX_STATES 4096
 #define MAX_ALIASES 48
 
+#define MAX_CRITERIA 16
+#define MAX_EXPR_LEN 128
+
 #define STATE_ARRAY_ADDRESS 0x2008000000
 
 typedef struct {
@@ -28,8 +31,17 @@ typedef struct {
   bool done;
 } test_frame_t;
 
+typedef struct {
+  uint8_t output_pin_id;
+  uint8_t pin_ids[16];
+  char *logic_expression;
+  uint16_t value;
+  uint8_t type;  // 0 - eval logic expression: multiple pins to one output, 1 - pin_ids is always = value (from frame X to frame Y), 2 - pin_ids is counter 
+  uint16_t from_frame;
+  uint16_t to_frame;
+} test_criteria_t;
 
-extern uint8_t output_cache[MAX_STATES][4];
+extern uint8_t G_output_cache[MAX_STATES][4];
 
 typedef struct {
     char test_name[20];
@@ -43,11 +55,11 @@ typedef struct {
     uint16_t frame_interval_ms;
     uint32_t iterations_done;
     uint8_t counters[9];
+    test_criteria_t *test_criteria[MAX_CRITERIA+1];
 } test_data_t;
 
-
 typedef struct {
-    uint8_t loop_type;  // 0 for BANK, 1 for LOOP
+    uint8_t loop_type;  // 1 COUNTER, 2 LOOP
     uint8_t matched_value;
     uint8_t counter_parameter;
 } loop_conditions_t;
@@ -58,6 +70,13 @@ typedef enum {
     MATCH_LOOP,
     MATCH_COUNTER
 } loop_condition_type;
+
+// Enumerated type for pin state
+typedef enum {
+    MATCH_EXPRESSION,
+    MATCH_VALUE,
+    MATCH_COUNTER1
+} test_criteria_type;
 
 // Array of test configurations
 

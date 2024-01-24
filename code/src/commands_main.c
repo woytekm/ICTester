@@ -151,10 +151,18 @@ void display_help() {
     vcom_printf("set test frame-interval <test_name> <ms>: set test frame interval to ms miliseconds\r\n");
     vcom_printf("set test io-settings <test_name> <bank 1: I|O>  <bank 2: I|O>  <bank 3: I|O>  <bank 4: I|O>\r\n");
     vcom_printf("set test frame <test_name> <number> <bitmap 1> <bitmap 2> <bitmap 3> <bitmap 4>\r\n");
+    vcom_printf("set test criteria <test_name> <criteria number> expr <expr> from-frame <number> to-frame <number>\r\n");
+    vcom_printf("   expr example: Y1=!((A1_AND_B1_AND_C1)_OR_(D1_AND_E1_AND_F1)) \r\n");
+    vcom_printf("   where Y1 = output pin alias used to check expression result\r\n");
+    vcom_printf("         A1,B1,C1,D1,E1,F1 = input pin aliases used to calculate expression value\r\n");
+    vcom_printf("set test criteria <test_name> <criteria number> val <val pin aliases: \"(pin1,pin2,pin3,pin4,pin5)=0xA\"> from-frame <number> to-frame <number>\r\n");
+    vcom_printf("   check if specified pins match bit value specified (from frame x to frame y)\r\n");
+    vcom_printf("set test criteria <test_name> <criteria number> ctr <counter pin aliases: \"(pin1,pin2,pin3,pin4,pin5)\"> from-frame <number> to-frame <number>\r\n");
+    vcom_printf("   check if bit value of specified pins (in order) is a counter incrementing by one (from frame x to frame y)\r\n");
     vcom_printf("show test <name>\r\n");
     vcom_printf("show test frame <test_name> <number>\r\n");
+    vcom_printf("show test states <test_name>\r\n");
     vcom_printf("run test <name>\n\r");
-
     vcom_printf("hwinfo: show system information\n\r");
     vcom_printf("reset: reset the system\n\r");
     vcom_printf("help: display available commands\n\r");
@@ -215,7 +223,7 @@ void display_hwinfo() {
     vcom_printf(" PINMODE_OD3:  0x%X\n\r",LPC_PINCON->PINMODE_OD3);
     vcom_printf(" PINMODE_OD4:  0x%X\n\r",LPC_PINCON->PINMODE_OD4);
 
-    vcom_printf(" output_cache_array_addr: 0x%X (this should be from RAM2 at 0x2007D000)\n\r",&output_cache);
+    vcom_printf(" output_cache_array_addr: 0x%X (this should be from RAM2 at 0x2007D000)\n\r",&G_output_cache);
 
 }
 

@@ -1,0 +1,11 @@
+0x0000000010000000                __base_RAM = 0x10000000
+0x0000000010008000                __top_RAM = 0x10008000      malloc() allocs
+0x000000002007c000                __base_RAM2 = 0x2007c000
+0x0000000020084000                __top_RAM2 = 0x20084000     USB data structs, other I/O
+
+#define USB_STACK_MEM_BASE      0x2007C000
+#else
+#define USB_STACK_MEM_BASE      0x20000000
+#endif
+#define USB_STACK_MEM_SIZE      0x0800  <== USB uses first 2K from RAM2
+

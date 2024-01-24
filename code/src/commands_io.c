@@ -32,9 +32,9 @@ void cli_set_io(int argc, char **argv) {
          return;
        }
      if(strcmp(argv[2], "enable") == 0)
-      set_pin_high(G_pin_array[bank_id].gpio_id);
+      set_pin_high_simple(G_pin_array[bank_id].gpio_id);
      else if(strcmp(argv[2], "disable") == 0)  
-      set_pin_low(G_pin_array[bank_id].gpio_id); 
+      set_pin_low_simple(G_pin_array[bank_id].gpio_id); 
      else
       vcom_printf( "ERROR: invalid operation (should be enable|disable)\n\r"); 
      
@@ -46,17 +46,17 @@ void cli_set_io(int argc, char **argv) {
       }
      if(strcmp(argv[1], "enable") == 0)
       {
-        set_pin_high(G_pin_array[1].gpio_id);
-        set_pin_high(G_pin_array[2].gpio_id);
-        set_pin_high(G_pin_array[3].gpio_id);
-        set_pin_high(G_pin_array[4].gpio_id);
+        set_pin_high_simple(G_pin_array[1].gpio_id);
+        set_pin_high_simple(G_pin_array[2].gpio_id);
+        set_pin_high_simple(G_pin_array[3].gpio_id);
+        set_pin_high_simple(G_pin_array[4].gpio_id);
       }
      else if(strcmp(argv[1], "disable") == 0)
       {
-        set_pin_low(G_pin_array[1].gpio_id);
-        set_pin_low(G_pin_array[2].gpio_id);
-        set_pin_low(G_pin_array[3].gpio_id);
-        set_pin_low(G_pin_array[4].gpio_id);
+        set_pin_low_simple(G_pin_array[1].gpio_id);
+        set_pin_low_simple(G_pin_array[2].gpio_id);
+        set_pin_low_simple(G_pin_array[3].gpio_id);
+        set_pin_low_simple(G_pin_array[4].gpio_id);
       }
      else
       vcom_printf( "ERROR: invalid operation (should be enable|disable)\n\r");
@@ -90,12 +90,12 @@ void cli_set_dut_power(int argc, char **argv) {
   char *subcommand_set_dut = argv[0];
 
   if (strcmp(subcommand_set_dut, "enable") == 0) {
-        set_pin_high(PIN_DUT_POWER);
+        set_pin_high_simple(PIN_DUT_POWER);
         vcom_printf( "DUT power enabled.\n\r");
       }
   else if(strcmp(subcommand_set_dut, "disable") == 0)
       {
-        set_pin_low(PIN_DUT_POWER);
+        set_pin_low_simple(PIN_DUT_POWER);
         vcom_printf( "DUT power disabled.\n\r");
       }
   else
