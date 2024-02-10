@@ -11,14 +11,21 @@
 #include "gpio_pin.h"
 #include "test.h"
 #include "state_ops.h"
+#include "globals.h"
+#include "utils.h"
 
+#include "LPC17xx.h"
 
 uint16_t cache_entries;
+
+uint8_t G_cmd_cnt;
+
+__DATA(RAM2) char G_command_buffer[MAX_TEST_CMDS][MAX_CMD_LEN];
 __DATA(RAM2) uint8_t G_output_cache[MAX_STATES][4];  // let's keep this in AHB RAM2 (second 32KB block of SRAM available in LPC1769). First 4KB in this block is allocated by USB OTG data structures. 
 __DATA(RAM2) uint8_t usb_structures[4096];            // preserve preallocated USB OTG data structures in AHB RAM2
 
 // Helper function to parse and convert bank bitmap from string to uint8_t
-uint8_t parse_bank_bitmap(const char* bitmap_str) {
+uint8_t parse_bank_bitmap(char* bitmap_str) {
     // Check if the string starts with "0b" or "0B"
     if (bitmap_str[0] == '0' && (bitmap_str[1] == 'b' || bitmap_str[1] == 'B')) {
         return strtol(bitmap_str + 2, NULL, 2);  // Convert binary string
@@ -118,6 +125,7 @@ void cli_set_test_pin_alias(int argc, char** argv) {
     char* test_name = argv[0];
     char* alias_param = argv[1];
 
+    
     // Find the test index
     int test_index = -1;
     for (int i = 0; i < MAX_TESTS; ++i) {
@@ -132,10 +140,13 @@ void cli_set_test_pin_alias(int argc, char** argv) {
         return;
     }
 
+    char **argv_copy = duplicate_argv(argc,argv);
+
     // Extract pin number and alias from the parameter
     char* token = strtok(alias_param, "=");
     if (token == NULL) {
         vcom_printf("ERROR: invalid format for pin alias - use pin_number=pin_alias.\r\n");
+        free_argv(argc,&argv_copy);
         return;
     }
 
@@ -143,6 +154,7 @@ void cli_set_test_pin_alias(int argc, char** argv) {
     token = strtok(NULL, "=");
     if (token == NULL) {
         vcom_printf("ERROR: invalid format for pin alias - use pin_number=pin_alias.\r\n");
+        free_argv(argc,&argv_copy);
         return;
     }
 
@@ -155,18 +167,23 @@ void cli_set_test_pin_alias(int argc, char** argv) {
     // Check if conversion was successful and within the valid pin range
     if (*endptr != '\0' || (pin_number < 10 || pin_number > 47)) {
         vcom_printf("ERROR: invalid pin number: %s\r\n", pin_number_str);
+        free_argv(argc,&argv_copy);
         return;
     }
 
     // Check the length of pin_alias
     if (strlen(pin_alias) > 4) {
         vcom_printf("ERROR: pin alias can have a maximum of 4 characters.\r\n");
+        free_argv(argc,&argv_copy);
         return;
     }
 
     // Set pin alias in the appropriate cell of pin_aliases array
     strncpy(G_test_array[test_index]->pin_aliases[pin_number], pin_alias, 4);
     vcom_printf("pin alias set: pin %u, alias: %s \r\n", pin_number, pin_alias);
+
+    replace_or_append_cmd_buff("set test pin-alias ",argc,argv_copy);
+    free_argv(argc,&argv_copy);
 }
 
 
@@ -444,13 +461,15 @@ void cli_run_test(int argc, char** argv) {
 
       uint8_t ctr = 0;
 
+      NVIC_DisableIRQ(USB_IRQn);
+
       for(uint16_t k = 0; k < G_test_array[test_index]->iterations_done; k++)
         {
 
          ctr = 0;
          while(write_banks[ctr++] != 0x0)
           {
-           set_level_bank3(write_banks[ctr-1],G_output_cache[k][write_banks[ctr-1]]);
+           set_level_bank(write_banks[ctr-1],G_output_cache[k][write_banks[ctr-1]]);
            G_test_array[test_index]->test_states[k][write_banks[ctr-1]] = G_output_cache[k][write_banks[ctr-1]];
           }
 
@@ -460,11 +479,12 @@ void cli_run_test(int argc, char** argv) {
            G_test_array[test_index]->test_states[k][read_banks[ctr-1]] = read_level_bank(read_banks[ctr-1]);
           }
 
-         delayMS(G_test_array[test_index]->frame_interval_ms);
+         //delayMS(G_test_array[test_index]->frame_interval_ms);
         }
 
- 
-      delayMS(1000);
+      NVIC_EnableIRQ(USB_IRQn);
+
+      delayMS(100);
  
       vcom_printf("* disabling DUT power...\r\n");
       _argc = 1;
@@ -618,7 +638,8 @@ void cli_set_test_name(int argc, char** argv) {
         memset(new_test->pin_aliases,0x0,sizeof(new_test->pin_aliases));
         memset(new_test->test_criteria,0x0,sizeof(new_test->test_criteria));
 
-        printf("test created: %s\n\r", new_test_name);
+        replace_or_append_cmd_buff("set test name ",argc,argv);
+
     } else {
         printf("ERROR: maximum number of tests reached.\n\r");
     }
@@ -657,11 +678,12 @@ void cli_set_test_frame_interval(int argc, char** argv) {
         vcom_printf("ERROR: invalid frame interval value: %s\n\r", frame_interval_str);
         return;
     }
-
+ 
     // Set the frame_interval_ms in the test_data_t structure
     G_test_array[test_index]->frame_interval_ms = frame_interval_ms;
-
     vcom_printf("frame interval set for test %s: %u ms\n\r", test_name, frame_interval_ms);
+
+    replace_or_append_cmd_buff("set test frame-interval ",argc,argv);
 }
 
 
@@ -701,6 +723,7 @@ void cli_set_test_io_settings(int argc, char** argv) {
     }
 
     vcom_printf("I/O settings set for test %s\n\r", test_name);
+    replace_or_append_cmd_buff("set test io-settings ",argc,argv);
 }
 
 
@@ -934,6 +957,8 @@ void cli_set_test_frame(int argc, char** argv) {
         G_test_array[test_index]->frame_count++;
     }
 
+    char **argv_copy = duplicate_argv(argc,argv);
+
     if (strcmp(argv[2], "loop") == 0) 
      {
       if(!handle_loop_settings(G_test_array[test_index]->test_frames[frame_number],argv[3],argv[4],argv[5]))
@@ -944,6 +969,7 @@ void cli_set_test_frame(int argc, char** argv) {
             free(G_test_array[test_index]->test_frames[frame_number]);
             G_test_array[test_index]->frame_count--;
           }
+         free_argv(argc,&argv_copy);
          return;
         }
      
@@ -955,6 +981,7 @@ void cli_set_test_frame(int argc, char** argv) {
            free(G_test_array[test_index]->test_frames[frame_number]);
            G_test_array[test_index]->frame_count--;
           }
+         free_argv(argc,&argv_copy);
          return;
         }
      }
@@ -981,6 +1008,7 @@ void cli_set_test_frame(int argc, char** argv) {
                   free(G_test_array[test_index]->test_frames[frame_number]);
                   G_test_array[test_index]->frame_count--;
                  }
+               free_argv(argc,&argv_copy);
                return;
                }
 
@@ -996,6 +1024,9 @@ void cli_set_test_frame(int argc, char** argv) {
               vcom_printf("ERROR during parsing pin alias params, frame %u\n\r", frame_number);
 
     vcom_printf("frame set for test %s, frame %u\n\r", test_name, frame_number);
+    replace_or_append_cmd_buff("set test frame ",argc,argv_copy);
+    free_argv(argc,&argv_copy);
+   
 }
 
 
@@ -1068,13 +1099,7 @@ bool parse_pin_alias_params(int argc, char** argv, uint8_t *bank_bitmap, char pi
 }
 
 // Function to show test aliases
-void show_test_aliases(uint8_t test_index) {
-    if (test_index >= 8 || G_test_array[test_index] == NULL) {
-        vcom_printf("Error: Invalid test index.");
-        return;
-    }
-
-    test_data_t* test = G_test_array[test_index];
+void show_test_aliases(char pin_aliases[48][5]) {
 
     char left_alias[5];
     char right_alias[5];
@@ -1088,14 +1113,14 @@ void show_test_aliases(uint8_t test_index) {
         int right_pin = 20 + i;
 
          if (left_pin >= 40 && left_pin <= 47) {
-            if(strlen(test->pin_aliases[left_pin]))
-              strcpy(left_alias,test->pin_aliases[left_pin]);
+            if(strlen(pin_aliases[left_pin]))
+              strcpy(left_alias,pin_aliases[left_pin]);
             else
               strcpy(left_alias,"none");
           } 
          if (right_pin >= 20 && right_pin <= 27) {
-            if(strlen(test->pin_aliases[right_pin]))
-              strcpy(right_alias,test->pin_aliases[right_pin]);
+            if(strlen(pin_aliases[right_pin]))
+              strcpy(right_alias,pin_aliases[right_pin]);
             else
               strcpy(right_alias,"none");
           }
@@ -1110,14 +1135,14 @@ void show_test_aliases(uint8_t test_index) {
         int right_pin = 10 + i;
 
         if (left_pin >= 30 && left_pin <= 37) {
-            if(strlen(test->pin_aliases[left_pin]))
-              strcpy(left_alias,test->pin_aliases[left_pin]);
+            if(strlen(pin_aliases[left_pin]))
+              strcpy(left_alias,pin_aliases[left_pin]);
             else
               strcpy(left_alias,"none");
           } 
          if (right_pin >= 10 && right_pin <= 17) {
-            if(strlen(test->pin_aliases[right_pin]))
-              strcpy(right_alias,test->pin_aliases[right_pin]);
+            if(strlen(pin_aliases[right_pin]))
+              strcpy(right_alias,pin_aliases[right_pin]);
             else
               strcpy(right_alias,"none");
           } 
@@ -1270,7 +1295,7 @@ void cli_show_test_name(int argc, char** argv) {
         vcom_printf("frame count: %u\n\r", G_test_array[test_index]->frame_count);
         vcom_printf("frame interval (ms): %u\n\r", G_test_array[test_index]->frame_interval_ms);
         vcom_printf("\n\r--------- aliases --------------------\r\n");
-        show_test_aliases(test_index);
+        show_test_aliases(G_test_array[test_index]->pin_aliases);
         vcom_printf("\n\r--------- frames ---------------------\r\n");
         vcom_printf("I/O settings:                     %c                 %c                 %c                %c\n\r",  
                                                  (G_test_array[test_index]->io_settings[1] == 255) ? 'I' : 'O', 
@@ -1317,6 +1342,8 @@ void cli_show_test_name(int argc, char** argv) {
                     vcom_printf(" CTR%d=%s  ",G_test_array[test_index]->test_frames[i]->counter_to_bank_assignment[k],binary_strings[k]);
                  else if(use_counters[k] == 2)
                     vcom_printf("        CTR%d+     ",G_test_array[test_index]->test_frames[i]->counter_to_bank_assignment[k]);
+                 else if(use_counters[k] == 3)
+                    vcom_printf("        CTR%d      ",G_test_array[test_index]->test_frames[i]->counter_to_bank_assignment[k]);
  
                vcom_printf("|");
                vcom_printf(" done: %s\n\r", G_test_array[test_index]->test_frames[i]->done ? "true" : "false");

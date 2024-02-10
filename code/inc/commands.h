@@ -12,6 +12,7 @@ void cli_show_level(int argc, char **argv);
 void cli_show_test(int argc, char **argv); 
 void cli_set_direction_pin(int argc, char **argv); 
 void cli_set_direction_bank(int argc, char **argv); 
+void set_direction_bank(uint8_t bank_id, uint8_t direction);
 void cli_set_direction_all(int argc, char **argv); 
 void cli_show_direction_pin(int argc, char **argv); 
 void cli_show_direction_bank(int argc, char **argv);

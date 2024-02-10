@@ -1,5 +1,6 @@
 // Array of test configurations
 #include "test.h"
+#include <string.h>
 
 test_data_t *G_test_array[MAX_TESTS];
 

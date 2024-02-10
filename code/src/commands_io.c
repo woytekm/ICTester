@@ -32,9 +32,9 @@ void cli_set_io(int argc, char **argv) {
          return;
        }
      if(strcmp(argv[2], "enable") == 0)
-      set_pin_high_simple(G_pin_array[bank_id].gpio_id);
+      set_pin_low_simple(G_pin_array[bank_id].gpio_id);
      else if(strcmp(argv[2], "disable") == 0)  
-      set_pin_low_simple(G_pin_array[bank_id].gpio_id); 
+      set_pin_high_simple(G_pin_array[bank_id].gpio_id); 
      else
       vcom_printf( "ERROR: invalid operation (should be enable|disable)\n\r"); 
      
@@ -46,17 +46,17 @@ void cli_set_io(int argc, char **argv) {
       }
      if(strcmp(argv[1], "enable") == 0)
       {
-        set_pin_high_simple(G_pin_array[1].gpio_id);
-        set_pin_high_simple(G_pin_array[2].gpio_id);
-        set_pin_high_simple(G_pin_array[3].gpio_id);
-        set_pin_high_simple(G_pin_array[4].gpio_id);
-      }
-     else if(strcmp(argv[1], "disable") == 0)
-      {
         set_pin_low_simple(G_pin_array[1].gpio_id);
         set_pin_low_simple(G_pin_array[2].gpio_id);
         set_pin_low_simple(G_pin_array[3].gpio_id);
         set_pin_low_simple(G_pin_array[4].gpio_id);
+      }
+     else if(strcmp(argv[1], "disable") == 0)
+      {
+        set_pin_high_simple(G_pin_array[1].gpio_id);
+        set_pin_high_simple(G_pin_array[2].gpio_id);
+        set_pin_high_simple(G_pin_array[3].gpio_id);
+        set_pin_high_simple(G_pin_array[4].gpio_id);
       }
      else
       vcom_printf( "ERROR: invalid operation (should be enable|disable)\n\r");
@@ -65,13 +65,24 @@ void cli_set_io(int argc, char **argv) {
 
 }
 
+
+void set_io_bank(uint8_t bank_id,char *state) {
+
+     if(strcmp(state, "enable") == 0)
+      set_pin_low_simple(G_pin_array[bank_id].gpio_id);
+     else if(strcmp(state, "disable") == 0)
+      set_pin_high_simple(G_pin_array[bank_id].gpio_id);
+}
+
+
+
 void cli_show_io(void)
  {
    uint8_t i,pin_level;
    for(i=1;i<5;i++)
     {
       pin_level = get_pin(G_pin_array[i].gpio_id);
-      if(pin_level == 0)
+      if(pin_level == 1)
         vcom_printf("Bank %d I/O status: disabled\r\n",i);
       else
         vcom_printf("Bank %d I/O status: enabled\r\n",i);
@@ -102,3 +113,15 @@ void cli_set_dut_power(int argc, char **argv) {
       vcom_printf( "ERROR: invalid parameter. Should be: <enable|disable>\n\r");
 
 }
+
+void set_dut_power(char *state) {
+
+  if (strcmp(state, "enable") == 0) {
+        set_pin_high_simple(PIN_DUT_POWER);
+      }
+  else if(strcmp(state, "disable") == 0)
+      {
+        set_pin_low_simple(PIN_DUT_POWER);
+      }
+}
+

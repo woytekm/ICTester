@@ -1,2 +1,2 @@
-../code/src/cli_io.c:10:6:vcom_putch	24	static
-../code/src/cli_io.c:20:6:vcom_message	272	static
+../code/src/cli_io.c:12:6:vcom_putch	16	static
+../code/src/cli_io.c:18:6:vcom_message	24	static

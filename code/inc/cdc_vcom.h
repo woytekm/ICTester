@@ -121,6 +121,12 @@ uint32_t vcom_write (uint8_t *pBuf, uint32_t buf_len);
  * @}
  */
 
+
+extern uint8_t g_rxBuff[256];
+
+extern USBD_HANDLE_T g_hUsb;
+
+
 #ifdef __cplusplus
 }
 #endif

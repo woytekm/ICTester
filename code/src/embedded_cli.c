@@ -15,7 +15,7 @@
 #define CLEAR_EOL "\x1b[0K"
 #define MOVE_BOL "\x1b[1G"
 
-static void cli_putchar(struct embedded_cli *cli, char ch, bool is_last)
+static void cli_putchar(struct embedded_cli *cli, unsigned char ch, bool is_last)
 {
     if (cli->put_char) {
 #if EMBEDDED_CLI_SERIAL_XLATE
@@ -48,7 +48,7 @@ static void embedded_cli_reset_line(struct embedded_cli *cli)
 }
 
 void embedded_cli_init(struct embedded_cli *cli, const char *prompt,
-                       void (*put_char)(void *data, char ch, bool is_last),
+                       void (*put_char)(void *data, unsigned char ch, bool is_last),
                        void *cb_data)
 {
     memset(cli, 0, sizeof(*cli));

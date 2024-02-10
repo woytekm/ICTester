@@ -10,6 +10,8 @@
 #include "LPC17xx.h"
 #include "core_cm3.h"
 #include "test.h"
+#include "sdcard.h"
+
 
 // Top-level function to dispatch commands
 void dispatch_cli_command(int cli_argc, char **cli_argv) {
@@ -23,7 +25,8 @@ void dispatch_cli_command(int cli_argc, char **cli_argv) {
       return;
 
     // Array of known top-level commands
-    const char *top_level_commands[] = {"set", "clear", "show","run","help","hwinfo","reset"};
+    const char *top_level_commands[] = {"set","clear","show","run","help","hwinfo","reset",
+                                        "dir","cat","xxd","strings","rm","mv","mkdir","load","save"};
 
     int i;
     int num_top_level_commands = sizeof(top_level_commands) / sizeof(top_level_commands[0]);
@@ -60,6 +63,12 @@ void dispatch_cli_command(int cli_argc, char **cli_argv) {
             else if (strcmp(subcommand_set, "test") == 0) {
                 cli_set_test(cli_argc - 2, cli_argv + 2);
             }
+            else if (strcmp(subcommand_set, "sram-test") == 0) {
+                cli_set_sram_test(cli_argc - 2, cli_argv + 2);
+            }
+            else if (strcmp(subcommand_set, "rom-dumper") == 0) {
+                cli_set_rom_dumper(cli_argc - 2, cli_argv + 2);
+            }
             else {
                 vcom_printf( "unknown subcommand for 'set': %s\n\r", subcommand_set);
             }
@@ -88,6 +97,10 @@ void dispatch_cli_command(int cli_argc, char **cli_argv) {
                 cli_show_clock();
             } else if (strcmp(subcommand_show, "test") == 0) {
                 cli_show_test(cli_argc - 2, cli_argv + 2);
+            }else if (strcmp(subcommand_show, "sram-test") == 0) {
+                cli_show_sram_test(cli_argc - 2, cli_argv + 2);
+            }else if (strcmp(subcommand_show, "rom-dumper") == 0) {
+                cli_show_rom_dumper(cli_argc - 2, cli_argv + 2);
             }
             else {
                 vcom_printf( "unknown subcommand for 'show': %s\n\r", subcommand_show);
@@ -104,7 +117,11 @@ void dispatch_cli_command(int cli_argc, char **cli_argv) {
 
             if (strcmp(subcommand_run, "test") == 0) {
                 cli_run_test(cli_argc - 2, cli_argv + 2);
-            } 
+            }else if (strcmp(subcommand_run, "sram-test") == 0) {
+                cli_run_sram_test(cli_argc - 2, cli_argv + 2);
+            }else if (strcmp(subcommand_run, "rom-dumper") == 0) {
+                cli_run_rom_dumper(cli_argc - 2, cli_argv + 2);
+            }
             else {
                 vcom_printf( "unknown subcommand for 'run': %s\n\r", subcommand_run);
             }
@@ -123,6 +140,85 @@ void dispatch_cli_command(int cli_argc, char **cli_argv) {
             NVIC_SystemReset();
             break;
 
+        case 7: // dir
+            if (cli_argc < 2) 
+              usd_list_dir("/");
+            else
+              usd_list_dir(cli_argv[1]);
+            break;
+
+        case 8: // cat
+            if (cli_argc != 2)
+              {
+               vcom_printf( "usage: cat <filename>\n\r");
+               break;
+              }
+            usd_list_file_contents(cli_argv[1]);
+            break;
+
+        case 9: // xxd
+            if (cli_argc != 2)
+              {
+               vcom_printf( "usage: xxd <filename>\n\r");
+               break;
+              }
+            hex_dump(cli_argv[1]);
+            break;
+
+        case 10: // strings
+            if (cli_argc != 2)
+              {
+               vcom_printf( "usage: strings <filename>\n\r");
+               break;
+              }
+            strings(cli_argv[1]);
+            break;
+
+        case 11: // rm
+            if (cli_argc != 2)
+              {
+               vcom_printf( "usage: rm <filename>|<dirname>\n\r");
+               break;
+              }
+            usd_unlink_file(cli_argv[1]);
+            break;
+
+        case 12: // mv
+            if (cli_argc != 3)
+              {
+               vcom_printf( "usage: mv <filename> <new_filename>\n\r");
+               break;
+              }
+            usd_rename_file(cli_argv[1],cli_argv[2]);
+            break;
+
+        case 13: // mkdir
+            if (cli_argc != 2)
+              {
+               vcom_printf( "usage: mkdir <name>\n\r");
+               break;
+              }
+            usd_mkdir(cli_argv[1]);
+            break;
+
+        case 14: // load
+            if (cli_argc != 2)
+              {
+               vcom_printf( "usage: load <filename>\n\r");
+               break;
+              }
+            usd_load_file(cli_argv[1]);
+            break;
+
+        case 15: // save
+            if (cli_argc != 5)
+              {
+               vcom_printf( "usage: save test <name> to <filename>\n\r");
+               break;
+              }
+            usd_save_test_to_file(cli_argv[2],cli_argv[4]);
+            break;
+
         default:
             // Unknown command
             vcom_printf( "unknown command: %s\n\r", command);
@@ -134,38 +230,59 @@ void dispatch_cli_command(int cli_argc, char **cli_argv) {
 
 void display_help() {
     vcom_printf("available commands:\n\r");
-    vcom_printf("set level <pin|bank|all> <L|H>: set pin/bank/all level to a value\n\r");
-    vcom_printf("set level bitmap <bitmap 1> <bitmap 2> <bitmap 3> <bitmap 4>: set all pins in all banks to specified bitmaps\n\r");
-    vcom_printf("show level <pin|bank|all>: show level for pin/bank/all\n\r");
-    vcom_printf("show direction <pin|bank|all>: show pin/bank/all direction: input or ouptut\n\r");
-    vcom_printf("show io: show I/O status\n\r");
-    vcom_printf("show clock: show clock status and settings\n\r");
-    vcom_printf("set direction <pin|bank|all> <I|O>: set pin/bank/all direction to input/output\n\r");
-    vcom_printf("set io <bank|all> <enable|disable>: enable/disable I/O on bank/all\n\r");
-    vcom_printf("set clock pin <ID>: set pin for clock output\n\r");
-    vcom_printf("set clock period <kHz>: set clock frequency in Khz\n\r");
-    vcom_printf("set clock state <enable|disable>: enable or disable clock output\n\r");
-    vcom_printf("set dut-power <enable|disable>: enable/disable power to DUT\n\r");
-
-    vcom_printf("set test <name>: create new test\r\n");
-    vcom_printf("set test frame-interval <test_name> <ms>: set test frame interval to ms miliseconds\r\n");
-    vcom_printf("set test io-settings <test_name> <bank 1: I|O>  <bank 2: I|O>  <bank 3: I|O>  <bank 4: I|O>\r\n");
-    vcom_printf("set test frame <test_name> <number> <bitmap 1> <bitmap 2> <bitmap 3> <bitmap 4>\r\n");
-    vcom_printf("set test criteria <test_name> <criteria number> expr <expr> from-frame <number> to-frame <number>\r\n");
+    vcom_printf("\r\npin/bank level/direction:\r\n");
+    vcom_printf(" set level <pin|bank|all> <L|H>: set pin/bank/all level to a value\n\r");
+    vcom_printf(" set level bitmap <bitmap 1> <bitmap 2> <bitmap 3> <bitmap 4>: set all pins in all banks to specified bitmaps\n\r");
+    vcom_printf(" show level <pin|bank|all>: show level for bank/all\n\r");
+    vcom_printf(" show direction <bank|all>: show pin/bank/all direction: input or ouptut\n\r");
+    vcom_printf(" show io: show I/O status\n\r");
+    vcom_printf(" show clock: show clock status and settings\n\r");
+    vcom_printf(" set direction <bank|all> <I|O>: set bank/all direction to input/output\n\r");
+    vcom_printf(" set io <bank|all> <enable|disable>: enable/disable I/O on bank/all\n\r");
+    vcom_printf(" set clock pin <ID>: set pin for clock output\n\r");
+    vcom_printf(" set clock period <kHz>: set clock frequency in Khz\n\r");
+    vcom_printf(" set clock state <enable|disable>: enable or disable clock output\n\r");
+    vcom_printf("\r\ntest commands:\r\n");
+    vcom_printf(" set test <name>: create new test\r\n");
+    vcom_printf(" set test frame-interval <test_name> <ms>: set test frame interval to ms miliseconds\r\n");
+    vcom_printf(" set test io-settings <test_name> <bank 1: I|O>  <bank 2: I|O>  <bank 3: I|O>  <bank 4: I|O>\r\n");
+    vcom_printf(" set test frame <test_name> <number> <bitmap 1> <bitmap 2> <bitmap 3> <bitmap 4>\r\n");
+    vcom_printf(" set test criteria <test_name> <criteria number> expr <expr> from-frame <number> to-frame <number>\r\n");
     vcom_printf("   expr example: Y1=!((A1_AND_B1_AND_C1)_OR_(D1_AND_E1_AND_F1)) \r\n");
     vcom_printf("   where Y1 = output pin alias used to check expression result\r\n");
     vcom_printf("         A1,B1,C1,D1,E1,F1 = input pin aliases used to calculate expression value\r\n");
-    vcom_printf("set test criteria <test_name> <criteria number> val <val pin aliases: \"(pin1,pin2,pin3,pin4,pin5)=0xA\"> from-frame <number> to-frame <number>\r\n");
+    vcom_printf(" set test criteria <test_name> <criteria number> val <val pin aliases: \"(pin1,pin2,pin3,pin4,pin5)=0xA\"> from-frame <number> to-frame <number>\r\n");
     vcom_printf("   check if specified pins match bit value specified (from frame x to frame y)\r\n");
-    vcom_printf("set test criteria <test_name> <criteria number> ctr <counter pin aliases: \"(pin1,pin2,pin3,pin4,pin5)\"> from-frame <number> to-frame <number>\r\n");
+    vcom_printf(" set test criteria <test_name> <criteria number> ctr <counter pin aliases: \"(pin1,pin2,pin3,pin4,pin5)\"> from-frame <number> to-frame <number>\r\n");
     vcom_printf("   check if bit value of specified pins (in order) is a counter incrementing by one (from frame x to frame y)\r\n");
-    vcom_printf("show test <name>\r\n");
-    vcom_printf("show test frame <test_name> <number>\r\n");
-    vcom_printf("show test states <test_name>\r\n");
-    vcom_printf("run test <name>\n\r");
-    vcom_printf("hwinfo: show system information\n\r");
-    vcom_printf("reset: reset the system\n\r");
-    vcom_printf("help: display available commands\n\r");
+    vcom_printf(" show test <name>\r\n");
+    vcom_printf(" show test frame <test_name> <number>\r\n");
+    vcom_printf(" show test states <test_name>\r\n");
+    vcom_printf(" run test <name>\n\r");
+    vcom_printf("\r\nSRAM test commands:\r\n");
+    vcom_printf(" set sram-test <addr-bits> <data-bits> ce oe we <loops> where ce=L|H , oe=L|H, we=L|H\r\n");
+    vcom_printf(" show sram-test\r\n");
+    vcom_printf(" run sram-test\r\n");
+    vcom_printf("\r\nROM dumper commands:\r\n");
+    vcom_printf(" set rom-dumper <addr-bits> <data-bits> ce oe <filename> where ce=L|H , oe=L|H\r\n");
+    vcom_printf(" show rom-dumper\r\n");
+    vcom_printf(" run rom-dumper\r\n");
+    vcom_printf("\r\nfile commands:\r\n");
+    vcom_printf(" dir <path> - show directory listing\n\r");
+    vcom_printf(" cat <path> - list file contents\n\r");
+    vcom_printf(" xxd <path> - hex dump file contents\n\r");
+    vcom_printf(" strings <path> - show ASCII strings in file contents\n\r");
+    vcom_printf(" rm <path> - delete a file\n\r");
+    vcom_printf(" mv <path1> <path2> - rename a file\n\r");
+    vcom_printf(" mkdir <path> - create directory\n\r");
+    vcom_printf(" load <path> - load test from file\n\r");
+    vcom_printf(" save test <name> to <filename> - save test <name> to a file <filename>\n\r");
+    vcom_printf("\r\nother:\r\n");
+    vcom_printf(" set dut-power <enable|disable>: enable/disable power to DUT\n\r");
+    vcom_printf(" hwinfo: show system information\n\r");
+    vcom_printf(" reset: reset the system\n\r");
+    vcom_printf(" help: display available commands\n\r");
+    vcom_printf("\n\r");
 }
 
 

@@ -91,7 +91,7 @@ struct embedded_cli {
      * is_last will be set to true if this is the last character in this
      * transmission - this is helpful for flushing buffers.
      */
-    void (*put_char)(void *data, char ch, bool is_last);
+    void (*put_char)(void *data, unsigned char ch, bool is_last);
 
     /**
      * Data to provide to the put_char callback
@@ -115,7 +115,7 @@ struct embedded_cli {
  * Start up the Embedded CLI subsystem. This should only be called once.
  */
 void embedded_cli_init(struct embedded_cli *, const char *prompt,
-                       void (*put_char)(void *data, char ch, bool is_last),
+                       void (*put_char)(void *data, unsigned char ch, bool is_last),
                        void *cb_data);
 
 /**

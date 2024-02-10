@@ -26,7 +26,7 @@ main-build: ictester.axf
 ictester.axf: $(OBJS) $(USER_OBJS) makefile $(OPTIONAL_TOOL_DEPS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: MCU Linker'
-	arm-none-eabi-gcc -nostdlib -L "../RTT" -L"../lpc_chip_175x_6x/Debug" -L"../lpc_board_nxp_lpcxpresso_1769/Debug" -L"../lpc_chip_175x_6x/libs" -Xlinker -Map="ictester.map" -Xlinker --gc-sections -mcpu=cortex-m3 -mthumb -T ictester.ld -o "ictester.axf" $(OBJS) $(USER_OBJS) $(LIBS) -llpc_board_nxp_lpcxpresso_1769 -llpc_chip_175x_6x -lusbd_175x_6x_lib -lRTT 
+	arm-none-eabi-gcc -nostdlib -L "../RTT" -L"../SPI_SD" -L"../lpc_chip_175x_6x/Debug" -L"../lpc_board_nxp_lpcxpresso_1769/Debug" -L"../lpc_chip_175x_6x/libs" -Xlinker -Map="ictester.map" -Xlinker --gc-sections -mcpu=cortex-m3 -mthumb -T ictester.ld -o "ictester.axf" $(OBJS) $(USER_OBJS) $(LIBS) -llpc_board_nxp_lpcxpresso_1769 -llpc_chip_175x_6x -lusbd_175x_6x_lib -lRTT -lSPI-SD
 	@echo 'Finished building target: $@'
 	@echo ' '
 

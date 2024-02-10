@@ -16,6 +16,13 @@
 #include "embedded_cli.h"
 #include "commands.h"
 #include "SEGGER_RTT.h"
+#include "sram_test.h"
+#include "rom_dumper.h"
+
+#include "integer.h"
+#include "diskio.h"
+#include "ff.h"
+#include "rtc.h"
 
 
 /*****************************************************************************
@@ -26,12 +33,10 @@
  * Public types/enumerations/variables
  ****************************************************************************/
 
-static uint8_t g_rxBuff[256];
-
 static struct embedded_cli cli;
 
-static USBD_HANDLE_T g_hUsb;
-//static uint8_t g_rxBuff[256];
+USBD_HANDLE_T g_hUsb;
+uint8_t g_rxBuff[256];
 
 extern const  USBD_HW_API_T hw_api;
 extern const  USBD_CORE_API_T core_api;
@@ -104,6 +109,33 @@ USB_INTERFACE_DESCRIPTOR *find_IntfDesc(const uint8_t *pDesc, uint32_t intfClass
 	return pIntfDesc;
 }
 
+
+
+DWORD get_fattime (void)
+{
+        RTCTime rtc;
+
+        rtc.RTC_Sec = 0;
+        rtc.RTC_Min = 0;
+        rtc.RTC_Hour = 0;
+        rtc.RTC_Mday = 1;
+        rtc.RTC_Wday = 0;
+        rtc.RTC_Yday = 0;              /* current date 01/01/2010 */
+        rtc.RTC_Mon = 1;
+        rtc.RTC_Year = 2010;
+        
+        // Pack date and time into a DWORD variable
+        return    ((DWORD)(rtc.RTC_Year - 1980) << 25)
+                        | ((DWORD)rtc.RTC_Mon << 21)
+                        | ((DWORD)rtc.RTC_Mday << 16)
+                        | ((DWORD)rtc.RTC_Hour << 11)
+                        | ((DWORD)rtc.RTC_Min << 5)
+                        | ((DWORD)rtc.RTC_Sec >> 1);
+
+ }
+
+
+
 /**
  * @brief	main routine for example
  * @return	Function should not exit.
@@ -111,6 +143,7 @@ USB_INTERFACE_DESCRIPTOR *find_IntfDesc(const uint8_t *pDesc, uint32_t intfClass
 int main(void)
 {
 
+        DSTATUS status;
 	USBD_API_INIT_PARAM_T usb_param;
 	USB_CORE_DESCS_T desc;
 	ErrorCode_t ret = LPC_OK;
@@ -161,26 +194,28 @@ int main(void)
 		}
 	}
 
-        SEGGER_RTT_printf(0,"init_pin_array:\n");
 
         init_pin_array(); // initialize analyzer pin data structures
-
-        SEGGER_RTT_printf(0,"init_pins:\n");
         init_pins();      // initialize all pins to default state
-
-        SEGGER_RTT_printf(0,"init_timers:\n");
         init_timers();
-
-        SEGGER_RTT_printf(0,"init_leds:\n");
         init_leds();
+        init_sram_test(SRAM_DFT_ADDR_WIDTH,SRAM_DFT_DATA_WIDTH,SRAM_CE_LOW,SRAM_WE_LOW,SRAM_OE_LOW,SRAM_LOOPS,&G_sram_test_settings);
+        init_rom_dumper(ROM_DFT_ADDR_WIDTH,ROM_DFT_DATA_WIDTH,ROM_CE_LOW,ROM_OE_LOW,"rom.bin",&G_rom_dumper_settings);
 
-        SEGGER_RTT_printf(0,"start CLI:\n");
         bool done = false;
+
+
+        LPC17xx_SPI_Init();
+
+        status = disk_initialize(0);
+        SEGGER_RTT_printf(0,"disk_initialize(): %d\n",status);
+
+
+        uint8_t i,bytes;
 
         embedded_cli_init(&cli, "ICTester#", vcom_putch, stdout);
         embedded_cli_prompt(&cli);
 
-        uint8_t i,bytes;
 
         while (!done) {
 

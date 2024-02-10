@@ -1,11 +1,15 @@
 #include <stdint.h>
+#include <string.h>
 #include "LPC17xx.h"
+//#include "iocon_17xx_40xx.h"
 #include "gpio_pin.h"
 #include "gpio.h"
 #include "timers.h"
 #include "SEGGER_RTT.h"
 #include "stdbool.h"
 #include "test.h"
+#include "utils.h"
+
 
 uint8_t G_gpio_map[] = {
     [0] = 255,
@@ -51,10 +55,10 @@ uint8_t G_gpio_map[] = {
     [46] = PIN_46,
     [47] = PIN_47,
     [4] = PIN_4_OE,
-    [5] = 255,
-    [6] = 255,
-    [7] = 255,
-    [8] = 255,
+    [5] = PIN_1_DIR,
+    [6] = PIN_2_DIR,
+    [7] = PIN_3_DIR,
+    [8] = PIN_4_DIR,
     [9] = 255
 };
 
@@ -67,7 +71,7 @@ void init_pin_array(void) {
     uint32_t gpio_bank_addrs[5] = {0x2009C000,0x2009C020,0x2009C040,0x2009C060,0x2009C080};
     uint8_t gpio_id;
 
-    for (uint8_t i = 0; i < PIN_COUNT-1; ++i) {
+    for (uint8_t i = 0; i < PIN_COUNT; ++i) {
         gpio_id = G_gpio_map[i];
         if(gpio_id != 255)
          {
@@ -79,23 +83,34 @@ void init_pin_array(void) {
           G_pin_array[i].pin_id = i;
           G_pin_array[i].gpio_id = gpio_id;
           G_pin_array[i].gpio_pin_id = gpio_id % 100;
-          G_pin_array[i].direction = PIN_OUTPUT;
+          G_pin_array[i].direction = PIN_INPUT;
           G_pin_array[i].level = PIN_LOW;
          }
     }
 
-    // special case for pin 47 (GPIO23) which cannot be used as OUTPUT
-    G_pin_array[47].pin_id = 47;
-    G_pin_array[47].gpio_id = G_gpio_map[47];
-    G_pin_array[47].gpio_pin_id = G_gpio_map[47] % 100;
-    G_pin_array[47].direction = PIN_INPUT;
-    G_pin_array[47].level = PIN_LOW;
+    // special case for pin 44/45 (P0[27], P0[28]) which cannot be used as OUTPUT
+    G_pin_array[44].pin_id = 44;
+    G_pin_array[44].gpio_id = G_gpio_map[44];
+    G_pin_array[44].gpio_pin_id = G_gpio_map[44] % 100;
 
-    G_pin_array[47].direction = PIN_INPUT;
-    G_pin_array[47].level = PIN_LOW;
-    G_pin_array[47].gpio_addrs[0] = (uint32_t *)(gpio_bank_addrs[0] + 0x1C); // CLR (set 0)
-    G_pin_array[47].gpio_addrs[1] = (uint32_t *)(gpio_bank_addrs[0] + 0x18); // SET (set 1)
-    G_pin_array[47].gpio_addrs[2] = (uint32_t *)(gpio_bank_addrs[0] + 0x14); // PIN (read)
+    G_pin_array[44].direction = PIN_INPUT;
+    G_pin_array[44].level = PIN_LOW;
+
+    G_pin_array[44].gpio_addrs[0] = (uint32_t *)(gpio_bank_addrs[0] + 0x1C); // CLR (set 0)
+    G_pin_array[44].gpio_addrs[1] = (uint32_t *)(gpio_bank_addrs[0] + 0x18); // SET (set 1)
+    G_pin_array[44].gpio_addrs[2] = (uint32_t *)(gpio_bank_addrs[0] + 0x14); // PIN (read)
+
+    G_pin_array[45].pin_id = 45;
+    G_pin_array[45].gpio_id = G_gpio_map[45];
+    G_pin_array[45].gpio_pin_id = G_gpio_map[45] % 100;
+
+    G_pin_array[45].direction = PIN_INPUT;
+    G_pin_array[45].level = PIN_LOW;
+
+    G_pin_array[45].gpio_addrs[0] = (uint32_t *)(gpio_bank_addrs[0] + 0x1C); // CLR (set 0)
+    G_pin_array[45].gpio_addrs[1] = (uint32_t *)(gpio_bank_addrs[0] + 0x18); // SET (set 1)
+    G_pin_array[45].gpio_addrs[2] = (uint32_t *)(gpio_bank_addrs[0] + 0x14); // PIN (read)
+
 }
 
 
@@ -326,7 +341,7 @@ void init_pins(void)
     LPC_PINCON->PINSEL2 = 0x0;
 
     // set all pins used for tester I/O to FUNC0 - GPIO, pulldown enabled (if input)
-    for(uint8_t i = 0; i < PIN_COUNT; i++)
+    for(uint8_t i = 10; i < PIN_COUNT; i++)
       {
         bank = G_gpio_map[i]/100;
         pin = G_gpio_map[i] - bank * 100;
@@ -334,13 +349,57 @@ void init_pins(void)
       }
 
     // Init [0]25 (DUT power control) separately
-    Chip_IOCON_PinMux(LPC_IOCON, 0, 25, IOCON_MODE_PULLDOWN, IOCON_FUNC0);
-    set_pin_write(25);
-    set_pin_low_simple(25);
+    Chip_IOCON_PinMux(LPC_IOCON, 1, 25, IOCON_MODE_PULLDOWN, IOCON_FUNC0);
+    set_pin_write(125);
+    set_pin_low_simple(125);
 
-    // set all pins used for tester I/O to output/LOW
+    // Init OE pins and set them to output/high
+    Chip_IOCON_PinMux(LPC_IOCON, 0, 15, IOCON_MODE_PULLDOWN, IOCON_FUNC0);
+    set_pin_write(PIN_1_OE);
+    set_pin_high_simple(PIN_1_OE);
+
+    Chip_IOCON_PinMux(LPC_IOCON, 0, 4, IOCON_MODE_PULLDOWN, IOCON_FUNC0);
+    set_pin_write(PIN_2_OE);
+    set_pin_high_simple(PIN_2_OE);
+
+    Chip_IOCON_PinMux(LPC_IOCON, 1, 26, IOCON_MODE_PULLDOWN, IOCON_FUNC0);
+    set_pin_write(PIN_3_OE);
+    set_pin_high_simple(PIN_3_OE);
+
+    Chip_IOCON_PinMux(LPC_IOCON, 1, 21, IOCON_MODE_PULLDOWN, IOCON_FUNC0);
+    set_pin_write(PIN_4_OE);
+    set_pin_high_simple(PIN_4_OE);
+
+    // Init DIR pins and set them to output/low  (B -> A)
+    Chip_IOCON_PinMux(LPC_IOCON, 2, 1, IOCON_MODE_PULLDOWN, IOCON_FUNC0);
+    set_pin_write(PIN_1_DIR);
+    set_pin_low_simple(PIN_1_DIR);
+
+    Chip_IOCON_PinMux(LPC_IOCON, 1, 1, IOCON_MODE_PULLDOWN, IOCON_FUNC0);
+    set_pin_write(PIN_2_DIR);
+    set_pin_low_simple(PIN_2_DIR);
+
+    Chip_IOCON_PinMux(LPC_IOCON, 0, 22, IOCON_MODE_PULLDOWN, IOCON_FUNC0);
+    set_pin_write(PIN_3_DIR);
+    set_pin_low_simple(PIN_3_DIR);
+
+    Chip_IOCON_PinMux(LPC_IOCON, 1, 20, IOCON_MODE_PULLDOWN, IOCON_FUNC0);
+    set_pin_write(PIN_4_DIR);
+    set_pin_low_simple(PIN_4_DIR);
+    
+    // Init SPI pins for uSD card
+    Chip_IOCON_PinMux(LPC_IOCON, 0, 9, IOCON_MODE_INACT, IOCON_FUNC2);
+    Chip_IOCON_PinMux(LPC_IOCON, 0, 8, IOCON_MODE_INACT, IOCON_FUNC2);
+    Chip_IOCON_PinMux(LPC_IOCON, 0, 7, IOCON_MODE_INACT, IOCON_FUNC2);
+    Chip_IOCON_PinMux(LPC_IOCON, 0, 6, IOCON_MODE_INACT, IOCON_FUNC0); // SSEL is normal GPIO pin
+
+    // set all pins used for tester I/O to input/LOW
     for (uint8_t i = 1; i < sizeof(G_gpio_map) / sizeof(G_gpio_map[0]); ++i) {
         uint8_t pin_id = i;
+
+        // skip OE pins for banks - they are already set up 
+        if((i > 4) || (i < 9 ))
+          continue;
 
         if(G_pin_array[pin_id].direction == PIN_OUTPUT)
          {

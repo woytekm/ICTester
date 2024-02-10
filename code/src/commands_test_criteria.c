@@ -3,8 +3,11 @@
 #include <stddef.h>
 #include <string.h>
 #include <stdlib.h>
+#include <cr_section_macros.h>
 
 #include "test.h"
+#include "globals.h"
+#include "utils.h"
 
 
 bool is_logic_oper(char *token)
@@ -293,6 +296,8 @@ void cli_set_test_criteria(int argc, char** argv) {
         }
     }
 
+    char **argv_copy = duplicate_argv(argc,argv);
+
     switch (i) {
 
         case MATCH_EXPRESSION: // expr
@@ -405,10 +410,14 @@ void cli_set_test_criteria(int argc, char** argv) {
 
     }
 
+  replace_or_append_cmd_buff("set test criteria ",argc,argv_copy);
+  free_argv(argc,&argv_copy);
   return;
 
   free_and_return:
-   if(new_criteria)free(G_test_array[ti]->test_criteria[ci]);
+   if(new_criteria)  
+     free(G_test_array[ti]->test_criteria[ci]);
+   free_argv(argc,&argv_copy);
    return;
 
  }

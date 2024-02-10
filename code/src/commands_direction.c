@@ -38,9 +38,9 @@ void cli_set_direction_bank(int argc, char **argv) {
                    G_pin_array[i].direction = PIN_INPUT;
                    break;
                case PIN_OUTPUT:
-                   if(G_pin_array[i].pin_id == 47)
+                   if((G_pin_array[i].pin_id == 44)||(G_pin_array[i].pin_id == 45))
                     {
-                      vcom_printf( "ERROR: pin 47 (GPIO23) can be used only as INPUT\n\r");
+                      vcom_printf( "ERROR: pin %d can be used only as INPUT\n\r",G_pin_array[i].pin_id);
                       continue;
                     }
                    set_pin_write(G_pin_array[i].gpio_id);
@@ -54,7 +54,49 @@ void cli_set_direction_bank(int argc, char **argv) {
          }
      }
 
+    if(direction == PIN_INPUT)
+      set_pin_low_simple(G_pin_array[4+bank_id].gpio_id);   // bank DIR GPIO's are in G_pin_array 5,6,7,8 
+    else if(direction == PIN_OUTPUT)
+      set_pin_high_simple(G_pin_array[4+bank_id].gpio_id);
 }
+
+
+void set_direction_bank(uint8_t bank_id, uint8_t direction) {
+
+    uint8_t i;
+
+    for(i=0;i<PIN_COUNT;i++)
+     {
+      if( (G_pin_array[i].pin_id >= (bank_id*10)) && (G_pin_array[i].pin_id < ((bank_id*10)+10)) )
+       if(G_pin_array[i].gpio_id != 255)
+         {
+            switch (direction) {
+               case PIN_INPUT:
+                   set_pin_read(G_pin_array[i].gpio_id);
+                   G_pin_array[i].direction = PIN_INPUT;
+                   break;
+               case PIN_OUTPUT:
+                   if((G_pin_array[i].pin_id == 44)||(G_pin_array[i].pin_id == 45))
+                    {
+                      vcom_printf( "ERROR: pin %d can be used only as INPUT\n\r",G_pin_array[i].pin_id);
+                      continue;
+                    }
+                   set_pin_write(G_pin_array[i].gpio_id);
+                   G_pin_array[i].direction = PIN_OUTPUT;
+                   break;
+               default:
+                   break;
+                }
+         }
+     }
+
+    if(direction == PIN_INPUT)
+      set_pin_low_simple(G_pin_array[4+bank_id].gpio_id);   // bank DIR GPIO's are in G_pin_array 5,6,7,8
+    else if(direction == PIN_OUTPUT)
+      set_pin_high_simple(G_pin_array[4+bank_id].gpio_id);
+}
+
+
 
 void cli_set_direction_all(int argc, char **argv) {
     uint8_t direction,i;
@@ -64,9 +106,9 @@ void cli_set_direction_all(int argc, char **argv) {
         return;
     }
 
-    if (strcmp(argv[1], "I") == 0) {
+    if (strcmp(argv[0], "I") == 0) {
          direction = PIN_INPUT;
-    } else if (strcmp(argv[1], "O") == 0) {
+    } else if (strcmp(argv[0], "O") == 0) {
          direction = PIN_OUTPUT;
     } else {
          vcom_printf( "set direction bank: invalid direction specification (should be I or O)\n\r");
@@ -84,9 +126,9 @@ void cli_set_direction_all(int argc, char **argv) {
                    G_pin_array[i].direction = PIN_INPUT;
                    break;
                case PIN_OUTPUT:
-                   if(G_pin_array[i].pin_id == 47)
+                   if((G_pin_array[i].pin_id == 44)||(G_pin_array[i].pin_id == 45))
                     {
-                      vcom_printf( "ERROR: pin 47 (GPIO23) can be used only as INPUT\n\r");
+                      vcom_printf( "ERROR: pin %d can be used only as INPUT\n\r",G_pin_array[i].pin_id);
                       continue;
                     }
                    set_pin_write(G_pin_array[i].gpio_id);
@@ -95,24 +137,37 @@ void cli_set_direction_all(int argc, char **argv) {
                default:
                    break;
                 }
-            vcom_printf( "pin %d direction set to %s\n\r",G_pin_array[i].pin_id,argv[1]);
-
+            vcom_printf( "pin %d direction set to %s\n\r",G_pin_array[i].pin_id,argv[0]);
          }
+     }
+
+    if(direction == PIN_INPUT)
+     {
+       set_pin_low_simple(G_pin_array[5].gpio_id);   // bank DIR GPIO's are in G_pin_array 5,6,7,8
+       set_pin_low_simple(G_pin_array[6].gpio_id);
+       set_pin_low_simple(G_pin_array[7].gpio_id);
+       set_pin_low_simple(G_pin_array[8].gpio_id);
+     }
+    else if(direction == PIN_OUTPUT)
+     {
+       set_pin_high_simple(G_pin_array[5].gpio_id);
+       set_pin_high_simple(G_pin_array[6].gpio_id);
+       set_pin_high_simple(G_pin_array[7].gpio_id);
+       set_pin_high_simple(G_pin_array[8].gpio_id);
      }
 }
 
+
+
 void cli_set_direction(int argc, char **argv) {
     if (argc < 1) {
-        vcom_printf( "usage: set direction pin|bank|all <I|O>\n\r");
+        vcom_printf( "usage: set direction bank|all <I|O>\n\r");
         return;
     }
 
     char *subcommand_set_direction = argv[0];
 
-    if (strcmp(subcommand_set_direction, "pin") == 0) {
-        cli_set_direction_pin(argc - 1, argv + 1);
-    } 
-    else if (strcmp(subcommand_set_direction, "bank") == 0) {
+    if (strcmp(subcommand_set_direction, "bank") == 0) {
         cli_set_direction_bank(argc - 1, argv + 1);
     }
     else if (strcmp(subcommand_set_direction, "all") == 0) {
@@ -136,16 +191,13 @@ void cli_show_direction_bank(int argc, char **argv) {
 
 void cli_show_direction(int argc, char **argv) {
     if (argc < 1) {
-        vcom_printf( "usage: show direction pin|bank|all\n\r");
+        vcom_printf( "usage: show direction bank|all\n\r");
         return;
     }
 
     char *subcommand_show_direction = argv[0];
 
-    if (strcmp(subcommand_show_direction, "pin") == 0) {
-        cli_show_direction_pin(argc - 1, argv + 1);
-    } 
-    else if (strcmp(subcommand_show_direction, "bank") == 0) {
+    if (strcmp(subcommand_show_direction, "bank") == 0) {
         cli_show_direction_bank(argc - 1, argv + 1);
     }
     else if (strcmp(subcommand_show_direction, "all") == 0) {
@@ -157,61 +209,5 @@ void cli_show_direction(int argc, char **argv) {
 }
 
 
-void cli_set_direction_pin(int argc, char **argv) {
-    if (argc < 2) {
-        vcom_printf( "usage: set direction pin <pin ID> <I|O>\n\r");
-        return;
-    }
-
-   
-    int pin_id = atoi(argv[0]);
-
-    if(!validate_pin_id(pin_id))
-      return;
-
-    char *direction_value = argv[1];
-    vcom_printf( "setting pin %d direction to %s\n\r", pin_id, direction_value);
-    if(direction_value[0] == 'I')
-      {
-       set_pin_read(G_pin_array[pin_id].gpio_id);
-       G_pin_array[pin_id].direction = PIN_INPUT;
-      }
-    else if(direction_value[0] == 'O')
-      {
-       if(pin_id == 47)
-        {
-         vcom_printf( "ERROR: pin 47 (GPIO23) can be used only as INPUT\n\r");
-         return;
-        }
-       set_pin_write(G_pin_array[pin_id].gpio_id);
-       G_pin_array[pin_id].direction = PIN_OUTPUT;
-      }
-    else
-      {
-       vcom_printf( "ERROR: wrong pin direction. Should be: I or O\n\r");
-      }
-      
-}
-
-void cli_show_direction_pin(int argc, char **argv) {
-    if (argc < 1) {
-        vcom_printf( "usage: show direction pin <pin>\n\r");
-        return;
-    }
-
-    int pin_id = atoi(argv[0]);
-
-    if(!validate_pin_id(pin_id))
-      return;
-
-    if(G_pin_array[pin_id].direction == PIN_OUTPUT)
-     {
-       vcom_printf( "pin %d direction is O\n\r", pin_id);
-     }
-    else if(G_pin_array[pin_id].direction == PIN_INPUT)
-     {
-       vcom_printf( "pin %d direction is I\n\r", pin_id);
-     }
-}
 
 

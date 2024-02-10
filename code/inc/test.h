@@ -2,6 +2,8 @@
 #include<stdint.h>
 
 
+#define MAX_TEST_CMDS 50
+#define MAX_CMD_LEN 128
 #define MAX_TESTS 8
 #define MAX_FRAMES 64
 #define MAX_STATES 4096
@@ -26,7 +28,11 @@ typedef struct {
                             // 2 - loop to frame number bank_bitmap[0] until bank_bitmap[1] loops passed
   uint8_t use_counters;     // bitmap telling if we should init counter with value, or increment existing value (or do nothing)
                             // bits 0,1 - bank 1, bits 2,3 - bank 2, etc, 
-                            // values: 1: init counter with value and apply to bank 2: increment existing value and apply to bank
+                            // values: 
+                            //   1: init counter with value and apply to bank 
+                            //   2: increment existing counter value and apply to bank 
+                            //   3: keep existing counter value and apply to bank 
+
   uint8_t counter_to_bank_assignment[5]; // one byte for each bank - tells which one of eight test counters is assigned to bank (if any) 0 - no counter assigned
   bool done;
 } test_frame_t;
@@ -73,9 +79,9 @@ typedef enum {
 
 // Enumerated type for pin state
 typedef enum {
-    MATCH_EXPRESSION,
-    MATCH_VALUE,
-    MATCH_COUNTER1
+    MATCH_EXPRESSION, // check boolean expression 
+    MATCH_VALUE,      // check for value in bank
+    MATCH_COUNTER1    // check if bank acts as a couter
 } test_criteria_type;
 
 // Array of test configurations

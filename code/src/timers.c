@@ -2,6 +2,7 @@
 #include "LPC17xx.h"
 #include "gpio.h"
 #include "gpio_pin.h"
+#include "utils.h"
 
 uint32_t G_tim_1_prescale;
 
