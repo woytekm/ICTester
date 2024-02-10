@@ -66,6 +66,9 @@ void dispatch_cli_command(int cli_argc, char **cli_argv) {
             else if (strcmp(subcommand_set, "sram-test") == 0) {
                 cli_set_sram_test(cli_argc - 2, cli_argv + 2);
             }
+            else if (strcmp(subcommand_set, "dram-test") == 0) {
+                cli_set_dram_test(cli_argc - 2, cli_argv + 2);
+            }
             else if (strcmp(subcommand_set, "rom-dumper") == 0) {
                 cli_set_rom_dumper(cli_argc - 2, cli_argv + 2);
             }
@@ -99,6 +102,8 @@ void dispatch_cli_command(int cli_argc, char **cli_argv) {
                 cli_show_test(cli_argc - 2, cli_argv + 2);
             }else if (strcmp(subcommand_show, "sram-test") == 0) {
                 cli_show_sram_test(cli_argc - 2, cli_argv + 2);
+            }else if (strcmp(subcommand_show, "dram-test") == 0) {
+                cli_show_dram_test(cli_argc - 2, cli_argv + 2);
             }else if (strcmp(subcommand_show, "rom-dumper") == 0) {
                 cli_show_rom_dumper(cli_argc - 2, cli_argv + 2);
             }
@@ -119,6 +124,8 @@ void dispatch_cli_command(int cli_argc, char **cli_argv) {
                 cli_run_test(cli_argc - 2, cli_argv + 2);
             }else if (strcmp(subcommand_run, "sram-test") == 0) {
                 cli_run_sram_test(cli_argc - 2, cli_argv + 2);
+            }else if (strcmp(subcommand_run, "dram-test") == 0) {
+                cli_run_dram_test(cli_argc - 2, cli_argv + 2);
             }else if (strcmp(subcommand_run, "rom-dumper") == 0) {
                 cli_run_rom_dumper(cli_argc - 2, cli_argv + 2);
             }

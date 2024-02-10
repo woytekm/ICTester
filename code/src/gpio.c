@@ -88,29 +88,6 @@ void init_pin_array(void) {
          }
     }
 
-    // special case for pin 44/45 (P0[27], P0[28]) which cannot be used as OUTPUT
-    G_pin_array[44].pin_id = 44;
-    G_pin_array[44].gpio_id = G_gpio_map[44];
-    G_pin_array[44].gpio_pin_id = G_gpio_map[44] % 100;
-
-    G_pin_array[44].direction = PIN_INPUT;
-    G_pin_array[44].level = PIN_LOW;
-
-    G_pin_array[44].gpio_addrs[0] = (uint32_t *)(gpio_bank_addrs[0] + 0x1C); // CLR (set 0)
-    G_pin_array[44].gpio_addrs[1] = (uint32_t *)(gpio_bank_addrs[0] + 0x18); // SET (set 1)
-    G_pin_array[44].gpio_addrs[2] = (uint32_t *)(gpio_bank_addrs[0] + 0x14); // PIN (read)
-
-    G_pin_array[45].pin_id = 45;
-    G_pin_array[45].gpio_id = G_gpio_map[45];
-    G_pin_array[45].gpio_pin_id = G_gpio_map[45] % 100;
-
-    G_pin_array[45].direction = PIN_INPUT;
-    G_pin_array[45].level = PIN_LOW;
-
-    G_pin_array[45].gpio_addrs[0] = (uint32_t *)(gpio_bank_addrs[0] + 0x1C); // CLR (set 0)
-    G_pin_array[45].gpio_addrs[1] = (uint32_t *)(gpio_bank_addrs[0] + 0x18); // SET (set 1)
-    G_pin_array[45].gpio_addrs[2] = (uint32_t *)(gpio_bank_addrs[0] + 0x14); // PIN (read)
-
 }
 
 
@@ -144,14 +121,7 @@ void set_pin_write(uint32_t bank_pin)
    else if(bank_pin>100)
      LPC_GPIO1->FIODIR |= 1 << (uint32_t)(bank_pin - 100);
    else
-    {
-     if(bank_pin == 27)
-      {
-       vcom_printf("WARNING: setting GPIO27 to output will have no effect. It can only be used as INPUT.\n\r");
-       return;
-      }
      LPC_GPIO0->FIODIR |= 1 << (uint32_t)(bank_pin);
-    }
  }
 
 void set_pin_read(uint32_t bank_pin)

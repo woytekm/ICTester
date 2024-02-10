@@ -17,6 +17,7 @@
 #include "commands.h"
 #include "SEGGER_RTT.h"
 #include "sram_test.h"
+#include "dram_test.h"
 #include "rom_dumper.h"
 
 #include "integer.h"
@@ -200,6 +201,7 @@ int main(void)
         init_timers();
         init_leds();
         init_sram_test(SRAM_DFT_ADDR_WIDTH,SRAM_DFT_DATA_WIDTH,SRAM_CE_LOW,SRAM_WE_LOW,SRAM_OE_LOW,SRAM_LOOPS,&G_sram_test_settings);
+        init_dram_test(DRAM_DFT_ADDR_WIDTH,DRAM_DFT_DATA_WIDTH,DRAM_CE_LOW,DRAM_WE_LOW,DRAM_OE_LOW,DRAM_RAS_LOW,DRAM_CAS_LOW,DRAM_LOOPS,&G_dram_test_settings);
         init_rom_dumper(ROM_DFT_ADDR_WIDTH,ROM_DFT_DATA_WIDTH,ROM_CE_LOW,ROM_OE_LOW,"rom.bin",&G_rom_dumper_settings);
 
         bool done = false;

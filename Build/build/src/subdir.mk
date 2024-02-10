@@ -17,9 +17,11 @@ C_SRCS += \
 ../code/src/commands_clock.c \
 ../code/src/commands_test.c \
 ../code/src/commands_sram_test.c \
+../code/src/commands_dram_test.c \
 ../code/src/commands_rom_dumper.c \
 ../code/src/commands_test_criteria.c \
 ../code/src/sram_test.c \
+../code/src/dram_test.c \
 ../code/src/rom_dumper.c \
 ../code/src/state_ops.c \
 ../code/src/gpio.c \
@@ -46,9 +48,11 @@ OBJS += \
 ./build/src/commands_clock.o \
 ./build/src/commands_test.o \
 ./build/src/commands_sram_test.o \
+./build/src/commands_dram_test.o \
 ./build/src/commands_rom_dumper.o \
 ./build/src/commands_test_criteria.o \
 ./build/src/sram_test.o \
+./build/src/dram_test.o \
 ./build/src/rom_dumper.o \
 ./build/src/state_ops.o \
 ./build/src/gpio.o \
@@ -73,7 +77,7 @@ build/src/%.o: ../code/src/%.c build/src/subdir.mk
 clean: clean-build-2f-src
 
 clean-build-2f-src:
-	-$(RM) ./build/src/cdc_desc.d ./build/src/cdc_desc.o ./build/src/cdc_main.d ./build/src/cdc_main.o ./build/src/cdc_vcom.d ./build/src/cdc_vcom.o ./build/src/cr_startup_lpc175x_6x.d ./build/src/cr_startup_lpc175x_6x.o ./build/src/sysinit.d ./build/src/sysinit.o ./build/src/embedded_cli.o ./build/src/cli_io.o ./build/src/commands_main.o ./build/src/commands_io.o ./build/src/commands_direction.o ./build/src/commands_level.o ./build/src/gpio.o ./build/src/timers.o ./build/src/commands_test.o ./build/src/test.o ./build/src/commands_test_criteria.o ./build/src/state_ops.o ./build/src/ff.o ./build/src/ccsbcs.o ./build/src/sdcard.o ./build/src/sram_test.o ./build/src/commands_sram_test.o ./build/src/rom_dumper.o ./build/src/commands_rom_dumper.o
+	-$(RM) ./build/src/cdc_desc.d ./build/src/cdc_desc.o ./build/src/cdc_main.d ./build/src/cdc_main.o ./build/src/cdc_vcom.d ./build/src/cdc_vcom.o ./build/src/cr_startup_lpc175x_6x.d ./build/src/cr_startup_lpc175x_6x.o ./build/src/sysinit.d ./build/src/sysinit.o ./build/src/embedded_cli.o ./build/src/cli_io.o ./build/src/commands_main.o ./build/src/commands_io.o ./build/src/commands_direction.o ./build/src/commands_level.o ./build/src/gpio.o ./build/src/timers.o ./build/src/commands_test.o ./build/src/test.o ./build/src/commands_test_criteria.o ./build/src/state_ops.o ./build/src/ff.o ./build/src/ccsbcs.o ./build/src/sdcard.o ./build/src/sram_test.o ./build/src/commands_sram_test.o ./build/src/rom_dumper.o ./build/src/commands_rom_dumper.o ./build/src/dram_test.o ./build/src/commands_dram_test.o
 
 .PHONY: clean-build-2f-src
 

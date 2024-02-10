@@ -518,46 +518,21 @@ uint8_t read_level_bank(uint8_t bank_id) {
 
  uint8_t pin = bank_id*10,bitmap=0;
  
- //pinval = (((*G_pin_array[pin].gpio_addrs[READ_ADDR] & (1<<G_pin_array[pin].gpio_pin_id)) == 0) ? 0 : 1);
- //bitmap |= (pinval << 0);
-
  bitmap |= ((((*G_pin_array[pin].gpio_addrs[READ_ADDR] & (1<<G_pin_array[pin].gpio_pin_id)) == 0) ? 0 : 1) << 0);
-
  pin++;
  bitmap |= ((((*G_pin_array[pin].gpio_addrs[READ_ADDR] & (1<<G_pin_array[pin].gpio_pin_id)) == 0) ? 0 : 1) << 1);
- //pinval = (((*G_pin_array[pin].gpio_addrs[READ_ADDR] & (1<<G_pin_array[pin].gpio_pin_id)) == 0) ? 0 : 1);
- //bitmap |= (pinval << 1);
-
  pin++;
  bitmap |= ((((*G_pin_array[pin].gpio_addrs[READ_ADDR] & (1<<G_pin_array[pin].gpio_pin_id)) == 0) ? 0 : 1) << 2);
- //pinval = (((*G_pin_array[pin].gpio_addrs[READ_ADDR] & (1<<G_pin_array[pin].gpio_pin_id)) == 0) ? 0 : 1);
- //bitmap |= (pinval << 2);
-
  pin++;
  bitmap |= ((((*G_pin_array[pin].gpio_addrs[READ_ADDR] & (1<<G_pin_array[pin].gpio_pin_id)) == 0) ? 0 : 1) << 3);
- //pinval = (((*G_pin_array[pin].gpio_addrs[READ_ADDR] & (1<<G_pin_array[pin].gpio_pin_id)) == 0) ? 0 : 1);
- //bitmap |= (pinval << 3);
-
  pin++;
  bitmap |= ((((*G_pin_array[pin].gpio_addrs[READ_ADDR] & (1<<G_pin_array[pin].gpio_pin_id)) == 0) ? 0 : 1) << 4);
- //pinval = (((*G_pin_array[pin].gpio_addrs[READ_ADDR] & (1<<G_pin_array[pin].gpio_pin_id)) == 0) ? 0 : 1);
- //bitmap |= (pinval << 4);
-
  pin++;
  bitmap |= ((((*G_pin_array[pin].gpio_addrs[READ_ADDR] & (1<<G_pin_array[pin].gpio_pin_id)) == 0) ? 0 : 1) << 5);
- //pinval = (((*G_pin_array[pin].gpio_addrs[READ_ADDR] & (1<<G_pin_array[pin].gpio_pin_id)) == 0) ? 0 : 1);
- //bitmap |= (pinval << 5);
- 
  pin++;
  bitmap |= ((((*G_pin_array[pin].gpio_addrs[READ_ADDR] & (1<<G_pin_array[pin].gpio_pin_id)) == 0) ? 0 : 1) << 6);
- //pinval = (((*G_pin_array[pin].gpio_addrs[READ_ADDR] & (1<<G_pin_array[pin].gpio_pin_id)) == 0) ? 0 : 1);
- //bitmap |= (pinval << 6);
-
  pin++;
  bitmap |= ((((*G_pin_array[pin].gpio_addrs[READ_ADDR] & (1<<G_pin_array[pin].gpio_pin_id)) == 0) ? 0 : 1) << 7);
- //pinval = (((*G_pin_array[pin].gpio_addrs[READ_ADDR] & (1<<G_pin_array[pin].gpio_pin_id)) == 0) ? 0 : 1);
- //bitmap |= (pinval << 7);
-
  return bitmap;
 
 }

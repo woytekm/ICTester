@@ -38,11 +38,6 @@ void cli_set_direction_bank(int argc, char **argv) {
                    G_pin_array[i].direction = PIN_INPUT;
                    break;
                case PIN_OUTPUT:
-                   if((G_pin_array[i].pin_id == 44)||(G_pin_array[i].pin_id == 45))
-                    {
-                      vcom_printf( "ERROR: pin %d can be used only as INPUT\n\r",G_pin_array[i].pin_id);
-                      continue;
-                    }
                    set_pin_write(G_pin_array[i].gpio_id);
                    G_pin_array[i].direction = PIN_OUTPUT;
                    break;
@@ -76,11 +71,6 @@ void set_direction_bank(uint8_t bank_id, uint8_t direction) {
                    G_pin_array[i].direction = PIN_INPUT;
                    break;
                case PIN_OUTPUT:
-                   if((G_pin_array[i].pin_id == 44)||(G_pin_array[i].pin_id == 45))
-                    {
-                      vcom_printf( "ERROR: pin %d can be used only as INPUT\n\r",G_pin_array[i].pin_id);
-                      continue;
-                    }
                    set_pin_write(G_pin_array[i].gpio_id);
                    G_pin_array[i].direction = PIN_OUTPUT;
                    break;
@@ -126,11 +116,6 @@ void cli_set_direction_all(int argc, char **argv) {
                    G_pin_array[i].direction = PIN_INPUT;
                    break;
                case PIN_OUTPUT:
-                   if((G_pin_array[i].pin_id == 44)||(G_pin_array[i].pin_id == 45))
-                    {
-                      vcom_printf( "ERROR: pin %d can be used only as INPUT\n\r",G_pin_array[i].pin_id);
-                      continue;
-                    }
                    set_pin_write(G_pin_array[i].gpio_id);
                    G_pin_array[i].direction = PIN_OUTPUT;
                    break;

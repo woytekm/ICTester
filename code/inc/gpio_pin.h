@@ -71,8 +71,8 @@ extern uint32_t SystemCoreClock;
 #define PIN_41 118
 #define PIN_42 26
 #define PIN_43 25
-#define PIN_44 27
-#define PIN_45 28
+#define PIN_44 124
+#define PIN_45 123
 #define PIN_46 23
 #define PIN_47 24
 
