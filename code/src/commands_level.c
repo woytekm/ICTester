@@ -235,6 +235,8 @@ void cli_set_level_pin(int argc, char **argv) {
 
     if (pin_id >= 1 && pin_id <= sizeof(G_pin_array) / sizeof(G_pin_array[0])) {
                 uint8_t gpio_id = G_pin_array[pin_id].gpio_id;
+                vcom_printf( "GPIO id: %d, set addr: %X , clr addr: %X\n\r",gpio_id,G_pin_array[pin_id].gpio_addrs[SET_ADDR],G_pin_array[pin_id].gpio_addrs[CLR_ADDR]);
+
                 if(G_pin_array[pin_id].direction != PIN_OUTPUT)
                   {
                    vcom_printf( "ERROR: pin %d is not set to OUTPUT\n\r",pin_id);

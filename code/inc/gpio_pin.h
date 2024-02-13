@@ -4,6 +4,7 @@
 #define     __O     volatile             /*!< Defines 'write only' permissions                */
 #define     __IO    volatile             /*!< Defines 'read / write' permissions              */
 
+#ifndef __IOCON_17XX_40XX_H_
 typedef struct {
 #if defined(CHIP_LPC175X_6X)
         __IO uint32_t PINSEL[11];
@@ -15,6 +16,7 @@ typedef struct {
         __IO uint32_t p[5][32];
 #endif
 } LPC_IOCON_T;
+#endif
 
 #define LPC_IOCON_BASE            0x4002C000
 #define LPC_IOCON                 ((LPC_IOCON_T            *) LPC_IOCON_BASE)
@@ -71,8 +73,8 @@ extern uint32_t SystemCoreClock;
 #define PIN_41 118
 #define PIN_42 26
 #define PIN_43 25
-#define PIN_44 124
-#define PIN_45 123
+#define PIN_44 123
+#define PIN_45 122
 #define PIN_46 23
 #define PIN_47 24
 

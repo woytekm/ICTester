@@ -110,7 +110,6 @@ void init_leds(void)
 }
 
 
- 
 
 void set_pin_write(uint32_t bank_pin)
  {

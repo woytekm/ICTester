@@ -32,8 +32,8 @@ void cli_set_rom_dumper(int argc, char **argv)
     char *oe_active = argv[3];
     char *filename = argv[4];
 
-    if(addr_bits > 16)
-     { vcom_printf("ERROR: addr_bits too long (max 16 bits)\r\n");
+    if(addr_bits > 18)
+     { vcom_printf("ERROR: addr_bits too long (max 18 bits)\r\n");
         return; }
 
     if(data_bits > 8)
@@ -80,10 +80,10 @@ void cli_show_rom_dumper(int argc, char **argv)
 void cli_run_rom_dumper(int argc, char **argv)
 {
 
-  uint16_t j,addr_max = pow(2,G_rom_dumper_settings.address_width);
+  uint32_t j,addr_max = pow(2,G_rom_dumper_settings.address_width);
   uint8_t data_bitmask = (pow(2,G_rom_dumper_settings.data_width) - 1);
-  uint8_t output,j_low,j_high;
-  uint8_t byte_ctr = 0;
+  uint8_t output,j_low,j_high1,j_high2;
+  uint8_t byte_ctr = 0,ctlbank;
 
   uint8_t read_buffer[128];
 
@@ -141,10 +141,16 @@ void cli_run_rom_dumper(int argc, char **argv)
        {
          output = 0x0;
          j_low = (uint8_t)j;
-         j_high = j >> 8;
+         j_high1 = (uint8_t)j >> 8;
+         j_high2 = (uint8_t)j >> 16; // last two bits of 18 bit address
          set_level_bank(ADDR_LOW_BANK,j_low);
-         set_level_bank(ADDR_HIGH_BANK,j_high);
-         set_level_bank(CTRL_BANK,0b11111010);  // latch bits on D0-D7
+         set_level_bank(ADDR_HIGH_BANK,j_high1);
+         ctlbank = 0b11111110 & (j_high2 << 6); // add last two bits of address to last two unused pins in bank 4
+                                                // this will allow to read 18bit addresses (256K ROM's)
+         set_level_bank(CTRL_BANK,ctlbank);     // set last two address bits on pins 46,47 (if used)
+         ctlbank = 0b11111010 & (j_high2 << 6); // set control bank to combination of control lines (OE goes L)
+                                                // and 17,18 address bits
+         set_level_bank(CTRL_BANK,ctlbank);     // latch bits on D0-D7
          output = read_level_bank(DATA_BANK);   // read
          set_level_bank(CTRL_BANK,0b11111110);  // end read
     
@@ -162,7 +168,6 @@ void cli_run_rom_dumper(int argc, char **argv)
               byte_ctr = 0;
               vcom_printf(".");
            }
-
  
        }
 

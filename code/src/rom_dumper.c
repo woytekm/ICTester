@@ -22,15 +22,15 @@ void init_rom_dumper(uint8_t addr_width, uint8_t data_width, bool ce, bool oe, c
    rom_dumper_settings->pin_aliases[i][0]=0x0;
  
  if(rom_dumper_settings->address_width < 9)
- {
+  {
    for(i = 0; i < rom_dumper_settings->address_width; i++)
      { 
       sprintf(alias,"A%d",i);
       strncpy(rom_dumper_settings->pin_aliases[i+10], alias, 4);
      }
- }
- else
- {
+  }
+ else if(rom_dumper_settings->address_width < 17)
+  {
 
    for(i = 0; i < 8; i++)
      {
@@ -43,8 +43,36 @@ void init_rom_dumper(uint8_t addr_width, uint8_t data_width, bool ce, bool oe, c
       sprintf(alias,"A%d",i);
       strncpy(rom_dumper_settings->pin_aliases[(i-8)+20], alias, 4);
      }
-
- }
+  }
+ else if(rom_dumper_settings->address_width == 17)
+  {
+   for(i = 0; i < 8; i++)
+     {
+      sprintf(alias,"A%d",i);
+      strncpy(rom_dumper_settings->pin_aliases[i+10], alias, 4);
+     }
+   for(i = 8; i <16 ; i++)
+     {
+      sprintf(alias,"A%d",i);
+      strncpy(rom_dumper_settings->pin_aliases[(i-8)+20], alias, 4);
+     }
+   strncpy(rom_dumper_settings->pin_aliases[47], "A16", 4);
+  }
+ else if(rom_dumper_settings->address_width == 18)
+  {
+   for(i = 0; i < 8; i++)
+     {
+      sprintf(alias,"A%d",i);
+      strncpy(rom_dumper_settings->pin_aliases[i+10], alias, 4);
+     }
+   for(i = 8; i < 16; i++)
+     {
+      sprintf(alias,"A%d",i);
+      strncpy(rom_dumper_settings->pin_aliases[(i-8)+20], alias, 4);
+     }
+   strncpy(rom_dumper_settings->pin_aliases[47], "A16", 4);
+   strncpy(rom_dumper_settings->pin_aliases[46], "A17", 4);
+  }
 
  for(i = 0; i < rom_dumper_settings->data_width; i++)
   {

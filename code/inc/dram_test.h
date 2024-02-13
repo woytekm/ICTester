@@ -15,8 +15,11 @@
 #define DR_DATA_BANK 3
 #define DR_CTRL_BANK 4
 
+typedef enum {SINGLE_PORT,DUAL_PORT,DUAL_2RAS} dram_type;
 
 typedef struct {
+  uint8_t dram_type ;       // this differs DRAM chips by the data bus type: two separate I/O ports or one multiplexed I/O port 
+                            // dual port examples: 4116,4132,4164, single port: 4x64Kbit DRAM's with 8bit data bus (MB81464)
   uint8_t address_width;
   uint8_t data_width;
   bool ce_active_low;

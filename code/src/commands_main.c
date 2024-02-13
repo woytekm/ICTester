@@ -270,6 +270,14 @@ void display_help() {
     vcom_printf(" set sram-test <addr-bits> <data-bits> ce oe we <loops> where ce=L|H , oe=L|H, we=L|H\r\n");
     vcom_printf(" show sram-test\r\n");
     vcom_printf(" run sram-test\r\n");
+    vcom_printf("\r\nDRAM test commands:\r\n");
+    vcom_printf(" set dram-test <addr-bits> <data-bits> ce oe we ras cas <loops> where ce=L|H , oe=L|H, we=L|H, ras=L|H, cas=L|H\r\n");
+    vcom_printf(" set dram-type <single-port|dual-port|single-port-2ras>\r\n");
+    vcom_printf("   single-port: DRAM with one I/O data bus\r\n"); 
+    vcom_printf("   dual-port: DRAM with separate I and O buses\r\n"); 
+    vcom_printf("   single-port-2ras: single port DRAM with 2 RAS lines (double capacity)\r\n");
+    vcom_printf(" show dram-test\r\n");
+    vcom_printf(" run dram-test\r\n");
     vcom_printf("\r\nROM dumper commands:\r\n");
     vcom_printf(" set rom-dumper <addr-bits> <data-bits> ce oe <filename> where ce=L|H , oe=L|H\r\n");
     vcom_printf(" show rom-dumper\r\n");

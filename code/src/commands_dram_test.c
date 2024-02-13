@@ -14,6 +14,17 @@
 #include "utils.h"
 #include "dram_test.h"
 
+
+void cli_set_dram_type(int argc, char **argv)
+{
+  if(argc != 1){
+       vcom_printf("usage: set dram-type <single-port|dual-port|single-port-2ras>\r\n");
+       return;
+    }
+
+
+}
+
 void cli_set_dram_test(int argc, char **argv)
 {
 
@@ -94,10 +105,8 @@ void cli_run_dram_test(int argc, char **argv)
   vcom_printf("r        - read\r\n");
   vcom_printf("r(P)     - page mode read\r\n");
   vcom_printf("r-m-w    - read-modify-write\r\n");
-  vcom_printf("r-m-w(P) - page mode read-modify-write\r\n");
   vcom_printf("RR       - RAS refresh\r\n");
-  vcom_printf("C-B-R    - CAS before RAS refresh\r\n");  
-  vcom_printf("HR       - hidden refresh\r\n");
+  vcom_printf("CBR    - CAS before RAS refresh\r\n");  
   vcom_printf("1 - data pattern: alternate 01010101, 2 - data pattern: alternate 10101010\r\n");
   vcom_printf("---------------------------------------\r\n");
 
@@ -125,9 +134,9 @@ void cli_run_dram_test(int argc, char **argv)
     set_level_bank(DR_DATA_BANK,0x0);
     set_level_bank(DR_CTRL_BANK,0xFF);
 
-    data_pattern = 0b01010101;
+    vcom_printf("%d (R/W): ",i);
 
-    vcom_printf("%d: ",i);
+    data_pattern = 0b01010101;
 
     vcom_printf("w(e)1,");
     test_dram_early_write(addr_max,data_pattern,true);
@@ -172,9 +181,69 @@ void cli_run_dram_test(int argc, char **argv)
     else
      vcom_printf("ok ");
 
-    // rest of the tests goes here
- 
+    data_pattern = 0b10101010;
+
+    vcom_printf("w(e)1,");
+    test_dram_early_write(addr_max,data_pattern,true);
+    vcom_printf("r-m-w,");
+    test_dram_read_mod_write(addr_max); // this test will read, bitwise reverse, and write bytes back to the DRAM
+    errors = test_dram_read(addr_max,data_bitmask,(~data_pattern),true); // data read should be reversed after r-m-w test
+    vcom_printf("r2:");
+    if(errors)
+     vcom_printf("fail ");
+    else
+     vcom_printf("ok ");
+
+    data_pattern = 0b10101010;
+    vcom_printf("w(P)1,");
+    test_dram_page_write(addr_max,data_pattern,true);
+    errors = test_dram_page_read(addr_max,data_bitmask,data_pattern,true); 
+    vcom_printf("r(P)1:");
+    if(errors)
+     vcom_printf("fail ");
+    else
+     vcom_printf("ok ");
+
+    data_pattern = 0b01010101;
+    vcom_printf("w(P)2,");
+    test_dram_page_write(addr_max,data_pattern,true);
+    errors = test_dram_page_read(addr_max,data_bitmask,data_pattern,true);
+    vcom_printf("r(P)2:");
+    if(errors)
+     vcom_printf("fail ");
+    else
+     vcom_printf("ok ");
+
     vcom_printf("\r\n"); 
+
+    vcom_printf("%d (refresh): ",i);
+
+    data_pattern = 0b10101010;
+    vcom_printf("w(P)1,");
+    test_dram_page_write(addr_max,data_pattern,true);
+    vcom_printf("RR,");
+    test_dram_rr_cycle(addr_max,5000,1);  // RAS only refresh - 1000 cycles, 1 msec interval
+    errors = test_dram_page_read(addr_max,data_bitmask,data_pattern,true);
+    vcom_printf("r(P)1:");
+    if(errors)
+     vcom_printf("fail ");
+    else
+     vcom_printf("ok ");
+
+    data_pattern = 0b10101010;
+    vcom_printf("w(P)1,");
+    test_dram_page_write(addr_max,data_pattern,true);
+    vcom_printf("CBR,");
+    test_dram_cbr_cycle(10000,1);  // CAS before RAS refresh - 1000 cycles, 1 msec interval
+    errors = test_dram_page_read(addr_max,data_bitmask,data_pattern,true);
+    vcom_printf("r(P)1:");
+    if(errors)
+     vcom_printf("fail ");
+    else
+     vcom_printf("ok ");
+
+    vcom_printf("\r\n");
+
    }
 
    set_io_bank(1,"disable");

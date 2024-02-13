@@ -24,6 +24,7 @@
 #include "diskio.h"
 #include "ff.h"
 #include "rtc.h"
+#include "gpio_pin.h"
 
 
 /*****************************************************************************
@@ -206,18 +207,17 @@ int main(void)
 
         bool done = false;
 
-
         LPC17xx_SPI_Init();
 
         status = disk_initialize(0);
         SEGGER_RTT_printf(0,"disk_initialize(): %d\n",status);
-
 
         uint8_t i,bytes;
 
         embedded_cli_init(&cli, "ICTester#", vcom_putch, stdout);
         embedded_cli_prompt(&cli);
 
+        set_pin_high_simple(PIN_YELLOW_LED);  // just tur it on as a "system ready" indicator for now
 
         while (!done) {
 
@@ -226,6 +226,8 @@ int main(void)
            if(pVcom->rx_count == 0)
               __WFI();
            bytes = vcom_bread(&g_hUsb,&g_rxBuff[0], 256);
+
+           set_pin_high_simple(PIN_GREEN_LED); 
 
            if(bytes > 0)
             {
@@ -241,6 +243,9 @@ int main(void)
              embedded_cli_prompt(&cli);
             }
            }
+
+           set_pin_low_simple(PIN_GREEN_LED);
+
          }
 
       }
