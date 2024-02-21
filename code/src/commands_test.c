@@ -1018,11 +1018,12 @@ void cli_set_test_frame(int argc, char** argv) {
        }
  
     if(argc > 6)
+      {
       if(!parse_pin_alias_params(argc - 6, argv + 6, 
           G_test_array[test_index]->test_frames[frame_number]->bank_bitmap, 
           G_test_array[test_index]->pin_aliases))
               vcom_printf("ERROR during parsing pin alias params, frame %u\n\r", frame_number);
-
+      }
     vcom_printf("frame set for test %s, frame %u\n\r", test_name, frame_number);
     replace_or_append_cmd_buff("set test frame ",argc,argv_copy);
     free_argv(argc,&argv_copy);
@@ -1092,7 +1093,7 @@ bool parse_pin_alias_params(int argc, char** argv, uint8_t *bank_bitmap, char pi
             }
         }
       else
-        vcom_printf("ERROR: bad extra parameter for \"set test frame\" command \r\n");
+        vcom_printf("ERROR: bad extra parameter (%d) for \"set test frame\": %s \r\n",i,argv[i]);
     }
 
     return true;
@@ -1105,7 +1106,7 @@ void show_test_aliases(char pin_aliases[48][5]) {
     char right_alias[5];
 
     // Display aliases in two columns
-    vcom_printf("| pin  | alias   | pin     | alias   |\r\n");
+    vcom_cprintf("| \e[0;36mpin\e[0m  | \e[0;36malias\e[0m   | \e[0;36mpin\e[0m     | \e[0;36malias\e[0m   |\r\n","| pin  | alias   | pin     | alias   |\r\n");
     vcom_printf("+------+---------+-------------------+\r\n");
 
     for (int i = 0; i < 8; ++i) {
@@ -1125,7 +1126,7 @@ void show_test_aliases(char pin_aliases[48][5]) {
               strcpy(right_alias,"none");
           }
 
-        vcom_printf("|%-4d  | %-4s    |   %-4d  | %-4s    |\r\n", left_pin, left_alias, right_pin, right_alias);
+        vcom_cprintf("|\e[0;33m%-4d\e[0m  | %-4s    |   \e[0;33m%-4d\e[0m  | %-4s    |\r\n","|%-4d  | %-4s    |   %-4d  | %-4s    |\r\n", left_pin, left_alias, right_pin, right_alias);
     }
 
     vcom_printf("\r\n");
@@ -1147,7 +1148,7 @@ void show_test_aliases(char pin_aliases[48][5]) {
               strcpy(right_alias,"none");
           } 
 
-        vcom_printf("|%-4d  | %-4s    |   %-4d  | %-4s    |\r\n", left_pin, left_alias, right_pin, right_alias);
+        vcom_cprintf("|\e[0;33m%-4d\e[0m  | %-4s    |   \e[0;33m%-4d\e[0m  | %-4s    |\r\n","|%-4d  | %-4s    |   %-4d  | %-4s    |\r\n", left_pin, left_alias, right_pin, right_alias);
     }
 
   vcom_printf("+------+---------+-------------------+\r\n");
@@ -1291,7 +1292,7 @@ void cli_show_test_name(int argc, char** argv) {
         }
 
         // Display detailed information for the specified test
-        vcom_printf("test name: %s\n\r", G_test_array[test_index]->test_name);
+        vcom_cprintf("test name: \e[0;36m%s\e[0m\n\r","test name: %s\n\r", G_test_array[test_index]->test_name);
         vcom_printf("frame count: %u\n\r", G_test_array[test_index]->frame_count);
         vcom_printf("frame interval (ms): %u\n\r", G_test_array[test_index]->frame_interval_ms);
         vcom_printf("\n\r--------- aliases --------------------\r\n");

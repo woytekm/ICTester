@@ -9,6 +9,8 @@
 #include "board.h"
 #include <stdio.h>
 #include <string.h>
+#include <cr_section_macros.h>
+
 #include "app_usbd_cfg.h"
 #include "cdc_vcom.h"
 #include "stopwatch.h"
@@ -19,7 +21,7 @@
 #include "sram_test.h"
 #include "dram_test.h"
 #include "rom_dumper.h"
-
+#include "globals.h"
 #include "integer.h"
 #include "diskio.h"
 #include "ff.h"
@@ -34,6 +36,8 @@
 /*****************************************************************************
  * Public types/enumerations/variables
  ****************************************************************************/
+
+bool G_use_color = true;
 
 static struct embedded_cli cli;
 
@@ -196,14 +200,13 @@ int main(void)
 		}
 	}
 
-
         init_pin_array(); // initialize analyzer pin data structures
         init_pins();      // initialize all pins to default state
         init_timers();
         init_leds();
-        init_sram_test(SRAM_DFT_ADDR_WIDTH,SRAM_DFT_DATA_WIDTH,SRAM_CE_LOW,SRAM_WE_LOW,SRAM_OE_LOW,SRAM_LOOPS,&G_sram_test_settings);
-        init_dram_test(DRAM_DFT_ADDR_WIDTH,DRAM_DFT_DATA_WIDTH,DRAM_CE_LOW,DRAM_WE_LOW,DRAM_OE_LOW,DRAM_RAS_LOW,DRAM_CAS_LOW,DRAM_LOOPS,&G_dram_test_settings);
-        init_rom_dumper(ROM_DFT_ADDR_WIDTH,ROM_DFT_DATA_WIDTH,ROM_CE_LOW,ROM_OE_LOW,"rom.bin",&G_rom_dumper_settings);
+        init_sram_test(SRAM_DFT_ADDR_WIDTH,SRAM_DFT_DATA_WIDTH,SRAM_CE_ACT,SRAM_WE_ACT,SRAM_OE_ACT,SRAM_LOOPS,&G_sram_test_settings);
+        init_dram_test(DRAM_DFT_ADDR_WIDTH,DRAM_DFT_DATA_WIDTH,DRAM_CE_ACT,DRAM_WE_ACT,DRAM_OE_ACT,DRAM_RAS_ACT,DRAM_CAS_ACT,DRAM_LOOPS,&G_dram_test_settings);
+        init_rom_dumper(ROM_DFT_ADDR_WIDTH,ROM_DFT_DATA_WIDTH,ROM_CE_ACT,ROM_OE_ACT,"rom.bin",&G_rom_dumper_settings);
 
         bool done = false;
 
@@ -220,7 +223,7 @@ int main(void)
         set_pin_high_simple(PIN_YELLOW_LED);  // just tur it on as a "system ready" indicator for now
 
         while (!done) {
-
+           
            delayMS(5);
 
            if(pVcom->rx_count == 0)
@@ -241,6 +244,7 @@ int main(void)
                //}
              dispatch_cli_command(cli_argc, cli_argv);
              embedded_cli_prompt(&cli);
+
             }
            }
 

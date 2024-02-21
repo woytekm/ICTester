@@ -109,6 +109,27 @@ void init_leds(void)
  set_pin_low_simple(PIN_YELLOW_LED);
 }
 
+void led_signal_test_fail(void)
+{
+ for(uint8_t i = 0; i < 5; i++)
+  {
+    set_pin_high_simple(PIN_RED_LED);
+    delayMS(110);
+    set_pin_low_simple(PIN_RED_LED);
+    delayMS(110);
+  }
+}
+
+void led_signal_test_ok(void)
+{
+ for(uint8_t i = 0; i < 5; i++)
+  {
+    set_pin_high_simple(PIN_GREEN_LED);
+    delayMS(110);
+    set_pin_low_simple(PIN_GREEN_LED);
+    delayMS(110);
+  }
+}
 
 
 void set_pin_write(uint32_t bank_pin)

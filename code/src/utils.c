@@ -15,6 +15,27 @@
 #include "ff.h"
 
 
+
+bool lh_to_bool(char c)
+ {
+   if(c == 'L')
+    return false;
+   else if(c == 'H')
+    return true;
+
+   return false;
+ }
+
+uint8_t lh_to_int(char c)
+ {
+   if(c == 'L')
+    return 0;
+   else if(c == 'H')
+    return 1;
+
+   return 0;
+ }
+
 void vcom_printf(char *fmt, ...)
  {
   #define MAX_LOG_MSG_LEN 2048
@@ -28,6 +49,38 @@ void vcom_printf(char *fmt, ...)
   vcom_message(message);
  }
 
+void vcom_cprintf(char *fmt_c, char *fmt_nc, ...)
+ {
+  #define MAX_LOG_MSG_LEN 2048
+  va_list ap;
+  char message[MAX_LOG_MSG_LEN];
+
+  if(G_use_color)
+   {
+     va_start(ap, fmt_nc);
+     vsprintf(message, fmt_c, ap);
+     va_end(ap);
+   }
+  else if(!G_use_color)
+   {
+     va_start(ap, fmt_nc);
+     vsprintf(message, fmt_nc, ap);
+     va_end(ap);
+   }
+
+  vcom_message(message);
+ }
+
+
+char sh_lvl_set(uint8_t level_set)
+ {
+  if(level_set == 0)
+   return 'L';
+  else if(level_set == 1)
+   return 'H';
+
+  return 'N';
+ }
 
 void replace_or_append_cmd_buff(char *cmd_start,uint8_t argc, char **argv)
  {
@@ -62,50 +115,57 @@ char *strdup (const char *s)
   return (char *) memcpy(new, s, len);
 }
 
-
-// courtesy of GPT 3.5 
+// memory conserving version 
 
 void tokenize_string(char *input_string, uint8_t *argc, char ***argv) {
-    // Make a copy of the input string as strtok modifies the string
-    char *input_copy = strdup(input_string);
+    // vcom_printf("tokenize: %s\r\n",input_string);
+    char c = ' ';
+    uint16_t i = 0;
+    bool non_space_char = false;
 
-    // Count the number of segments (words) in the input string
     *argc = 0;
-    char *token = strtok(input_copy, " \t");
-    while (token != NULL) {
-        (*argc)++;
-        token = strtok(NULL, " \t");
-    }
 
-    free(input_copy);
+    while(c != '\0')
+     {
+        c = input_string[i++];
+        if(((c == ' ')||(c == '\t'))&&(i == 1))  // spaces on the beginning - do not count
+          { non_space_char = false; continue; }
+        else if(((c == ' ')||(c == '\t'))&&non_space_char)  // also skip multiple spaces
+         {
+           (*argc)++;
+           non_space_char = false;
+         }
+        else
+         non_space_char = true;
+     }
+    if(non_space_char == false)
+      (*argc)--; // spaces on the end of the string - do not count
 
     // Allocate memory for the argument array
     *argv = (char **)malloc(sizeof(char *) * (*argc));
+     
+     uint8_t total_strlen = strlen(input_string);
+     uint8_t token_start = 0, token = 0;
 
-    // Reset strtok to tokenize the original string
-    input_copy = strdup(input_string);
-
-    // Copy each segment into the argument array
-    *argc = 0;
-    token = strtok(input_copy, " \t");
-    while (token != NULL) {
-        // Allocate memory and copy the segment into the argument array
-        (*argv)[*argc] = strdup(token);
-        (*argc)++;
-        token = strtok(NULL, " \t");
-    }
-
-    // Free the temporary copy of the input string
-    (*argc)--;
-    free(input_copy);
+     for(uint8_t i = 0; i < total_strlen; i++)
+      {
+        if(!non_space_char)
+          token_start = i;
+        if((input_string[i] == ' ')||(input_string[i] == '\0'))
+          {
+            input_string[i] = '\0';
+            (*argv)[token] = &input_string[token_start];
+            //vcom_printf("   token: %s\r\n",(*argv)[token]);
+            token++;
+            non_space_char = false;
+          }
+        else 
+          non_space_char = true;       
+      }
 }
 
 
 void free_argv(uint8_t argc, char ***argv) {
-    for (uint8_t i = 0; i < argc; i++) {
-        //vcom_printf("free argument %d: %s (%X)\r\n",i,(*argv)[i],(*argv)[i]);
-        free((*argv)[i]);
-    }
     //vcom_printf("free pointer %X\r\n",*argv);
     free(*argv);
 }

@@ -14,16 +14,6 @@
 #include "utils.h"
 #include "sram_test.h"
 
-bool lh_to_bool(char c)
- {
-
-   if(c == 'L')
-    return false;
-   else if(c == 'H')
-    return true;
-
-   return false;
- }
 
 void cli_set_sram_test(int argc, char **argv)
 {
@@ -33,7 +23,7 @@ void cli_set_sram_test(int argc, char **argv)
         return;
     }
 
-    bool ce_low,oe_low,we_low;
+    bool ce,oe,we;
     uint8_t addr_bits = atoi(argv[0]);
     uint8_t data_bits = atoi(argv[1]);
     char *ce_active = argv[2];
@@ -56,11 +46,11 @@ void cli_set_sram_test(int argc, char **argv)
      { vcom_printf("ERROR: incorrect CE/WE/OE flags: %c %c %c (should be L or H).\r\n",ce_active[0],oe_active[0],we_active[0]);
         return; }
 
-    if(lh_to_bool(ce_active[0])) ce_low = false; else ce_low = true;
-    if(lh_to_bool(oe_active[0])) oe_low = false; else oe_low = true;
-    if(lh_to_bool(we_active[0])) we_low = false; else we_low = true;
+    if(lh_to_int(ce_active[0])) ce = 1; else ce = 0;
+    if(lh_to_int(oe_active[0])) oe = 1; else oe = 0;
+    if(lh_to_int(we_active[0])) we = 1; else we = 0;
 
-    init_sram_test(addr_bits, data_bits, ce_low, we_low, oe_low, loops, &G_sram_test_settings);
+    init_sram_test(addr_bits, data_bits, ce, we, oe, loops, &G_sram_test_settings);
     
 
 }
@@ -69,12 +59,12 @@ void cli_set_sram_test(int argc, char **argv)
 void cli_show_sram_test(int argc, char **argv)
 {
 
- vcom_printf("Current SRAM test parameters:\r\n");
+ vcom_cprintf("\e[0;36mCurrent SRAM test parameters:\e[0m\r\n","Current SRAM test parameters:\r\n");
  vcom_printf("  Address bus width: %d bit \r\n",G_sram_test_settings.address_width);
  vcom_printf("  Data bus width: %d bit \r\n",G_sram_test_settings.data_width);
- vcom_printf("  CE active low: %d \r\n",G_sram_test_settings.ce_active_low);
- vcom_printf("  OE active low: %d \r\n",G_sram_test_settings.we_active_low);
- vcom_printf("  WE active low: %d \r\n",G_sram_test_settings.oe_active_low);
+ vcom_printf("  CE active: %c \r\n",sh_lvl_set(G_sram_test_settings.ce_active));
+ vcom_printf("  OE active: %c \r\n",sh_lvl_set(G_sram_test_settings.we_active));
+ vcom_printf("  WE active: %c \r\n",sh_lvl_set(G_sram_test_settings.oe_active));
  vcom_printf("  Test loops: %d \r\n",G_sram_test_settings.loops);
 
  vcom_printf("\n\r--------- pin cfg --------------------\r\n");
@@ -98,9 +88,11 @@ void cli_run_sram_test(int argc, char **argv)
   uint8_t output,j_low,j_high, data_pattern;
   uint16_t errors = 0;
 
+  vcom_cprintf("\e[0;36mSRAM test running\e[0m\r\n","SRAM test running\r\n");
   vcom_printf("addr width: %d bit, addr_max: 0x%X\r\n",G_sram_test_settings.address_width,(addr_max-1));
   vcom_printf("data width: %d bit, data_max: 0x%X\r\n",G_sram_test_settings.data_width,data_bitmask);
-
+  vcom_printf("test loops: %d \r\n",G_sram_test_settings.loops);
+  vcom_printf("-------------------------------------\r\n");
   set_direction_bank(ADDR_LOW_BANK, PIN_OUTPUT);
   set_direction_bank(ADDR_HIGH_BANK, PIN_OUTPUT);
   set_direction_bank(DATA_BANK, PIN_OUTPUT);
@@ -215,12 +207,14 @@ void cli_run_sram_test(int argc, char **argv)
 
     if(errors)
      {
-      vcom_printf("!!! %d errors found on pass %d\r\n",errors,i);
+      vcom_cprintf(" \e[0;31mfail\e[0m: %d errors found on pass %d\r\n", "  fail: %d errors found on pass %d\r\n", errors,i+1);
+      led_signal_test_fail();
       break;
      }
    
-    vcom_printf(" %d ok\r\n",i);
-   
+    vcom_cprintf(" %d:\e[0;32m %d Kbit x %d  ok\e[0m\r\n","%d: %d Kbit x %d ok\r\n",i,addr_max/1024,G_sram_test_settings.data_width);
+    led_signal_test_ok();
+    
    }
 
 

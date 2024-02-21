@@ -3,15 +3,15 @@
 
 #define ROM_DFT_ADDR_WIDTH 16
 #define ROM_DFT_DATA_WIDTH 8
-#define ROM_CE_LOW 1
-#define ROM_OE_LOW 1
+#define ROM_CE_ACT 0
+#define ROM_OE_ACT 0
 
 
 typedef struct {
   uint8_t address_width;
   uint8_t data_width;
-  bool ce_active_low;
-  bool oe_active_low;
+  uint8_t ce_active;
+  uint8_t oe_active;
   char filename[50];
   char pin_aliases[MAX_ALIASES][5];
 } rom_dumper_settings_t;

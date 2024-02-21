@@ -170,7 +170,7 @@ void usd_load_file(char *path)
     uint8_t my_argc;
     char **my_argv;
     FIL fil;        /* File object */
-    char line[128]; /* Line buffer */
+    char line[MAX_CMD_LEN]; /* Line buffer */
     FRESULT fr;     /* FatFs return code */
     FATFS drive;
 
@@ -187,11 +187,9 @@ void usd_load_file(char *path)
 
     /* Read every line and display it */
     while (f_gets(line, sizeof line, &fil)) {
-        //vcom_printf("tokenize: %s\r\n",line);
-        tokenize_string(line,&my_argc,&my_argv); 
-        //vcom_printf("dispatch: %s\r\n",line);
-        dispatch_cli_command(my_argc, my_argv);   
-        free_argv(my_argc,&my_argv);
+      tokenize_string(line,&my_argc,&my_argv); 
+      dispatch_cli_command(my_argc, my_argv);   
+      free_argv(my_argc,&my_argv);
     }
 
     /* Close the file */

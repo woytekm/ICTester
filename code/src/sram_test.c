@@ -11,9 +11,9 @@ void init_sram_test(uint8_t addr_width, uint8_t data_width, bool ce, bool we, bo
 
   sram_test_settings->address_width = addr_width;
   sram_test_settings->data_width = data_width;
-  sram_test_settings->ce_active_low = ce;
-  sram_test_settings->we_active_low = we;
-  sram_test_settings->oe_active_low = oe;
+  sram_test_settings->ce_active = ce;
+  sram_test_settings->we_active = we;
+  sram_test_settings->oe_active = oe;
   sram_test_settings->loops = loops;
 
   // review:

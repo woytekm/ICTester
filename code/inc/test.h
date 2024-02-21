@@ -5,8 +5,8 @@
 #define MAX_TEST_CMDS 50
 #define MAX_CMD_LEN 128
 #define MAX_TESTS 8
-#define MAX_FRAMES 64
-#define MAX_STATES 4096
+#define MAX_FRAMES 48
+#define MAX_STATES 4000
 #define MAX_ALIASES 48
 
 #define MAX_CRITERIA 16
@@ -55,7 +55,7 @@ typedef struct {
     char pin_aliases[MAX_ALIASES][5];
     uint8_t clock_pin;
     uint8_t reset_pin;
-    test_frame_t *test_frames[64];
+    test_frame_t *test_frames[MAX_FRAMES];
     uint8_t test_states[MAX_STATES][5];
     uint8_t frame_count;
     uint16_t frame_interval_ms;

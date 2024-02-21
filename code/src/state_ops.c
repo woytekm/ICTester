@@ -137,11 +137,13 @@ bool check_test_criteria(uint8_t tn, uint8_t cn)
                       vcom_printf("       state frame: %d\r\n",i);
                       vcom_printf("       eval: %s to %d\r\n",logic_expr,logic_result);
                       vcom_printf("       output pin id: %d : %d\r\n",G_test_array[tn]->test_criteria[cn]->output_pin_id,get_plfsa(G_test_array[tn]->test_criteria[cn]->output_pin_id,G_test_array[tn]->test_states[i]));
+                      led_signal_test_fail();
                       return false;
                      }
        
                   }
                  vcom_printf("    + test criteria %d passed\r\n",cn);
+                 led_signal_test_ok();
                  return true;
                }
                break;
@@ -169,11 +171,13 @@ bool check_test_criteria(uint8_t tn, uint8_t cn)
                       vcom_printf("    - test criteria %d failed at state frame %d\r\n",cn,i);
                       vcom_printf("       state frame: %d\r\n",i);
                       vcom_printf("       value is 0x%X, and should be 0x%X\r\n",value,G_test_array[tn]->test_criteria[cn]->value);
+                      led_signal_test_fail();
                       return false;
                      }
                  }
 
                 vcom_printf("    + test criteria %d passed\r\n",cn);
+                led_signal_test_ok();
                 return true;
                }
                break;
@@ -206,6 +210,7 @@ bool check_test_criteria(uint8_t tn, uint8_t cn)
                             vcom_printf("    - test criteria %d failed at state frame %d\r\n",cn,i);
                             vcom_printf("       state frame: %d\r\n",i);
                             vcom_printf("       current counter val: 0x%X, prev counter val: 0x%X \r\n",value,value_prev);
+                            led_signal_test_fail();
                             return false;
                         }
                     }
@@ -214,6 +219,7 @@ bool check_test_criteria(uint8_t tn, uint8_t cn)
                  }
 
                 vcom_printf("    + test criteria %d passed\r\n",cn);
+                led_signal_test_ok();
                 return true;
 
                }

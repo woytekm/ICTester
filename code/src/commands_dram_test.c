@@ -22,6 +22,24 @@ void cli_set_dram_type(int argc, char **argv)
        return;
     }
 
+  char *parameter = argv[0];
+
+  if (strcmp(parameter, "single-port") == 0) {
+    G_dram_test_settings.dram_type = SINGLE_PORT;
+    clear_aliases(&G_dram_test_settings);
+    set_aliases_single_port(&G_dram_test_settings);
+  } else if (strcmp(parameter, "dual-port") == 0) {
+    if(G_dram_test_settings.address_width>8)
+     {
+       vcom_printf("auto setting address bus width to 8\r\n");
+       G_dram_test_settings.address_width = 8;
+     }
+    G_dram_test_settings.dram_type = DUAL_PORT;
+    clear_aliases(&G_dram_test_settings);
+    set_aliases_dual_port(&G_dram_test_settings);
+  }
+  else
+   vcom_printf("unknown parameter: %s\r\n",parameter);
 
 }
 
@@ -33,7 +51,7 @@ void cli_set_dram_test(int argc, char **argv)
         return;
     }
 
-    bool ce_low,oe_low,we_low,cas_low,ras_low;
+    bool ce,oe,we,cas,ras;
     uint8_t addr_bits = atoi(argv[0]);
     uint8_t data_bits = atoi(argv[1]);
     char *ce_active = argv[2];
@@ -60,28 +78,33 @@ void cli_set_dram_test(int argc, char **argv)
      { vcom_printf("ERROR: incorrect CE/WE/OE/CAS/RAS flags: %c %c %c (should be L or H).\r\n",ce_active[0],oe_active[0],we_active[0]);
         return; }
 
-    if(lh_to_bool(ce_active[0])) ce_low = false; else ce_low = true;
-    if(lh_to_bool(oe_active[0])) oe_low = false; else oe_low = true;
-    if(lh_to_bool(we_active[0])) we_low = false; else we_low = true;
-    if(lh_to_bool(cas_active[0])) cas_low = false; else cas_low = true;
-    if(lh_to_bool(ras_active[0])) ras_low = false; else ras_low = true;
+    if(lh_to_int(ce_active[0])) ce = 1; else ce = 0;
+    if(lh_to_int(oe_active[0])) oe = 1; else oe = 0;
+    if(lh_to_int(we_active[0])) we = 1; else we = 0;
+    if(lh_to_int(cas_active[0])) cas = 1; else cas = 0;
+    if(lh_to_int(ras_active[0])) ras = 1; else ras = 0;
 
-    init_dram_test(addr_bits, data_bits, ce_low, we_low, oe_low, cas_low, ras_low, loops, &G_dram_test_settings);
+    init_dram_test(addr_bits, data_bits, ce, we, oe, cas, ras, loops, &G_dram_test_settings);
 
 }
 
 
 void cli_show_dram_test(int argc, char **argv)
 {
-
- vcom_printf("Current DRAM test parameters:\r\n");
+ 
+ vcom_cprintf("\e[0;36mCurrent DRAM test parameters:\e[0m\r\n","Current DRAM test parameters:\r\n");
+ vcom_printf("  DRAM type: ");
+ if(G_dram_test_settings.dram_type == SINGLE_PORT)
+   vcom_printf("single-port (multiplexed input/output data bus) \r\n");
+ else if(G_dram_test_settings.dram_type == DUAL_PORT)
+   vcom_printf("dual-port (separate input and output data buses) \r\n");
  vcom_printf("  Address bus width: %d bit \r\n",G_dram_test_settings.address_width);
  vcom_printf("  Data bus width: %d bit \r\n",G_dram_test_settings.data_width);
- vcom_printf("  CE active low: %d \r\n",G_dram_test_settings.ce_active_low);
- vcom_printf("  OE active low: %d \r\n",G_dram_test_settings.we_active_low);
- vcom_printf("  WE active low: %d \r\n",G_dram_test_settings.oe_active_low);
- vcom_printf("  RAS active low: %d \r\n",G_dram_test_settings.cas_active_low);
- vcom_printf("  CAS active low: %d \r\n",G_dram_test_settings.ras_active_low);
+ vcom_printf("  CE active: %c \r\n",sh_lvl_set(G_dram_test_settings.ce_active));
+ vcom_printf("  OE active: %c \r\n",sh_lvl_set(G_dram_test_settings.we_active));
+ vcom_printf("  WE active: %c \r\n",sh_lvl_set(G_dram_test_settings.oe_active));
+ vcom_printf("  RAS active: %c \r\n",sh_lvl_set(G_dram_test_settings.cas_active));
+ vcom_printf("  CAS active: %c \r\n",sh_lvl_set(G_dram_test_settings.ras_active));
  vcom_printf("  Test loops: %d \r\n",G_dram_test_settings.loops);
 
  vcom_printf("\n\r--------- pin cfg --------------------\r\n");
@@ -95,10 +118,18 @@ void cli_run_dram_test(int argc, char **argv)
   uint16_t i,addr_max = pow(2,G_dram_test_settings.address_width);
   uint8_t data_bitmask = (pow(2,G_dram_test_settings.data_width) - 1);
   uint8_t data_pattern;
-  uint16_t errors = 0;
+  uint32_t errors = 0;
+  uint8_t dram_type = G_dram_test_settings.dram_type;
 
+   vcom_printf("DRAM type: ");
+ if(G_dram_test_settings.dram_type == SINGLE_PORT)
+   vcom_printf("single-port\r\n");
+ else if(G_dram_test_settings.dram_type == DUAL_PORT)
+   vcom_printf("dual-port\r\n");
   vcom_printf("addr width: %d bit, addr_max: 0x%X\r\n",G_dram_test_settings.address_width,(addr_max-1));
   vcom_printf("data width: %d bit, data_max: 0x%X\r\n",G_dram_test_settings.data_width,data_bitmask);
+  vcom_printf("loops: %d \r\n",G_dram_test_settings.loops);
+  vcom_printf("---------------------------------------\r\n");
   vcom_printf("w(e)     - early write\r\n");
   vcom_printf("w(oe)    - OE write\r\n");
   vcom_printf("w(P)     - page mode write\r\n");
@@ -106,7 +137,7 @@ void cli_run_dram_test(int argc, char **argv)
   vcom_printf("r(P)     - page mode read\r\n");
   vcom_printf("r-m-w    - read-modify-write\r\n");
   vcom_printf("RR       - RAS refresh\r\n");
-  vcom_printf("CBR    - CAS before RAS refresh\r\n");  
+  vcom_printf("CBR      - CAS before RAS refresh\r\n");  
   vcom_printf("1 - data pattern: alternate 01010101, 2 - data pattern: alternate 10101010\r\n");
   vcom_printf("---------------------------------------\r\n");
 
@@ -134,113 +165,162 @@ void cli_run_dram_test(int argc, char **argv)
     set_level_bank(DR_DATA_BANK,0x0);
     set_level_bank(DR_CTRL_BANK,0xFF);
 
-    vcom_printf("%d (R/W): ",i);
+    vcom_printf("%d (R/W): ",i+1);
 
     data_pattern = 0b01010101;
-
     vcom_printf("w(e)1,");
-    test_dram_early_write(addr_max,data_pattern,true);
-    errors = test_dram_read(addr_max,data_bitmask,data_pattern,true);
+    test_dram_early_write(dram_type,addr_max,data_pattern,true);
+    errors = test_dram_read(dram_type,addr_max,data_bitmask,data_pattern,true);
     vcom_printf("r1:");
     if(errors)
-     vcom_printf("fail ");
+     {
+       vcom_cprintf("\e[0;31mfail \e[0m"," fail");
+       led_signal_test_fail();
+     }
     else
-     vcom_printf("ok ");
+     {
+      vcom_cprintf("\e[0;32mok \e[0m","ok ");
+      led_signal_test_ok();
+     }
  
 
     data_pattern = 0b10101010;
-
     vcom_printf("w(e)2,");
-    test_dram_early_write(addr_max,data_pattern,true);
-    errors = test_dram_read(addr_max,data_bitmask,data_pattern,true);
+    test_dram_early_write(dram_type,addr_max,data_pattern,true);
+    errors = test_dram_read(dram_type,addr_max,data_bitmask,data_pattern,true);
     vcom_printf("r2:");
     if(errors)
-     vcom_printf("fail ");
+     {
+       vcom_cprintf("\e[0;31mfail \e[0m"," fail");
+       led_signal_test_fail();
+     }
     else
-     vcom_printf("ok ");
-
+     {
+      vcom_cprintf("\e[0;32mok \e[0m","ok ");
+      led_signal_test_ok();
+     }
 
     vcom_printf("w(oe)1,");
     test_dram_oe_write(addr_max,data_pattern,true);
-    errors = test_dram_read(addr_max,data_bitmask,data_pattern,true);
+    errors = test_dram_read(dram_type,addr_max,data_bitmask,data_pattern,true);
     vcom_printf("r1:");
     if(errors)
-     vcom_printf("fail ");
+     {
+       vcom_cprintf("\e[0;31mfail \e[0m"," fail");
+       led_signal_test_fail();
+     }
     else
-     vcom_printf("ok ");
-
+     {
+      vcom_cprintf("\e[0;32mok \e[0m","ok ");
+      led_signal_test_ok();
+     }
 
     data_pattern = 0b10101010;
-
     vcom_printf("w(oe)2,");
     test_dram_oe_write(addr_max,data_pattern,true);
-    errors = test_dram_read(addr_max,data_bitmask,data_pattern,true);
+    errors = test_dram_read(dram_type,addr_max,data_bitmask,data_pattern,true);
     vcom_printf("r2:");
     if(errors)
-     vcom_printf("fail ");
+     {
+       vcom_cprintf("\e[0;31mfail \e[0m"," fail");
+       led_signal_test_fail();
+     }
     else
-     vcom_printf("ok ");
+     {
+      vcom_cprintf("\e[0;32mok \e[0m","ok ");
+      led_signal_test_ok();
+     }
 
     data_pattern = 0b10101010;
-
     vcom_printf("w(e)1,");
-    test_dram_early_write(addr_max,data_pattern,true);
+    test_dram_early_write(dram_type,addr_max,data_pattern,true);
     vcom_printf("r-m-w,");
-    test_dram_read_mod_write(addr_max); // this test will read, bitwise reverse, and write bytes back to the DRAM
-    errors = test_dram_read(addr_max,data_bitmask,(~data_pattern),true); // data read should be reversed after r-m-w test
+    test_dram_read_mod_write(dram_type,addr_max); // this test will read, bitwise reverse, and write bytes back to the DRAM
+    errors = test_dram_read(dram_type,addr_max,data_bitmask,(~data_pattern),true); // data read should be reversed after r-m-w test
     vcom_printf("r2:");
     if(errors)
-     vcom_printf("fail ");
+     {
+       vcom_cprintf("\e[0;31mfail \e[0m"," fail");
+       led_signal_test_fail();
+     }
     else
-     vcom_printf("ok ");
+     {
+      vcom_cprintf("\e[0;32mok \e[0m","ok ");
+      led_signal_test_ok();
+     }
 
     data_pattern = 0b10101010;
     vcom_printf("w(P)1,");
-    test_dram_page_write(addr_max,data_pattern,true);
+    test_dram_page_write(dram_type,addr_max,data_pattern,true);
     errors = test_dram_page_read(addr_max,data_bitmask,data_pattern,true); 
     vcom_printf("r(P)1:");
     if(errors)
-     vcom_printf("fail ");
+     {
+       vcom_cprintf("\e[0;31mfail \e[0m"," fail");
+       led_signal_test_fail();
+     }
     else
-     vcom_printf("ok ");
+     {
+      vcom_cprintf("\e[0;32mok \e[0m","ok ");
+      led_signal_test_ok();
+     }
 
     data_pattern = 0b01010101;
+    errors = 0;
     vcom_printf("w(P)2,");
-    test_dram_page_write(addr_max,data_pattern,true);
+    test_dram_page_write(dram_type,addr_max,data_pattern,true);
     errors = test_dram_page_read(addr_max,data_bitmask,data_pattern,true);
     vcom_printf("r(P)2:");
     if(errors)
-     vcom_printf("fail ");
+     {
+       vcom_cprintf("\e[0;31mfail \e[0m"," fail");
+       led_signal_test_fail();
+     }
     else
-     vcom_printf("ok ");
+     {
+      vcom_cprintf("\e[0;32mok \e[0m","ok ");
+      led_signal_test_ok();
+     }
 
     vcom_printf("\r\n"); 
 
-    vcom_printf("%d (refresh): ",i);
+    vcom_printf("%d (refresh): ",i+1);
 
     data_pattern = 0b10101010;
     vcom_printf("w(P)1,");
-    test_dram_page_write(addr_max,data_pattern,true);
+    test_dram_page_write(dram_type,addr_max,data_pattern,true);
     vcom_printf("RR,");
     test_dram_rr_cycle(addr_max,5000,1);  // RAS only refresh - 1000 cycles, 1 msec interval
     errors = test_dram_page_read(addr_max,data_bitmask,data_pattern,true);
     vcom_printf("r(P)1:");
     if(errors)
-     vcom_printf("fail ");
+     {
+       vcom_cprintf("\e[0;31mfail \e[0m"," fail");
+       led_signal_test_fail();
+     }
     else
-     vcom_printf("ok ");
+     {
+      vcom_cprintf("\e[0;32mok \e[0m","ok ");
+      led_signal_test_ok();
+     }
 
     data_pattern = 0b10101010;
     vcom_printf("w(P)1,");
-    test_dram_page_write(addr_max,data_pattern,true);
+    test_dram_page_write(dram_type,addr_max,data_pattern,true);
     vcom_printf("CBR,");
     test_dram_cbr_cycle(10000,1);  // CAS before RAS refresh - 1000 cycles, 1 msec interval
     errors = test_dram_page_read(addr_max,data_bitmask,data_pattern,true);
     vcom_printf("r(P)1:");
     if(errors)
-     vcom_printf("fail ");
+     {
+       vcom_cprintf("\e[0;31mfail \e[0m"," fail");
+       led_signal_test_fail();
+     }
     else
-     vcom_printf("ok ");
+     {
+      vcom_cprintf("\e[0;32mok \e[0m","ok ");
+      led_signal_test_ok();
+     }
 
     vcom_printf("\r\n");
 

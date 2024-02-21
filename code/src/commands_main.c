@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <cr_section_macros.h>
 #include "commands.h"
 #include "cli_io.h"
 #include "gpio.h"
@@ -11,7 +12,7 @@
 #include "core_cm3.h"
 #include "test.h"
 #include "sdcard.h"
-
+#include "globals.h"
 
 // Top-level function to dispatch commands
 void dispatch_cli_command(int cli_argc, char **cli_argv) {
@@ -69,8 +70,14 @@ void dispatch_cli_command(int cli_argc, char **cli_argv) {
             else if (strcmp(subcommand_set, "dram-test") == 0) {
                 cli_set_dram_test(cli_argc - 2, cli_argv + 2);
             }
+            else if (strcmp(subcommand_set, "dram-type") == 0) {
+                cli_set_dram_type(cli_argc - 2, cli_argv + 2);
+            }
             else if (strcmp(subcommand_set, "rom-dumper") == 0) {
                 cli_set_rom_dumper(cli_argc - 2, cli_argv + 2);
+            }
+            else if (strcmp(subcommand_set, "color") == 0) {
+                cli_set_color(cli_argc - 2, cli_argv + 2);
             }
             else {
                 vcom_printf( "unknown subcommand for 'set': %s\n\r", subcommand_set);
@@ -293,6 +300,7 @@ void display_help() {
     vcom_printf(" load <path> - load test from file\n\r");
     vcom_printf(" save test <name> to <filename> - save test <name> to a file <filename>\n\r");
     vcom_printf("\r\nother:\r\n");
+    vcom_printf(" set color <enable|disable>: enable/disable color in CLI\n\r");
     vcom_printf(" set dut-power <enable|disable>: enable/disable power to DUT\n\r");
     vcom_printf(" hwinfo: show system information\n\r");
     vcom_printf(" reset: reset the system\n\r");
@@ -355,7 +363,7 @@ void display_hwinfo() {
     vcom_printf(" PINMODE_OD3:  0x%X\n\r",LPC_PINCON->PINMODE_OD3);
     vcom_printf(" PINMODE_OD4:  0x%X\n\r",LPC_PINCON->PINMODE_OD4);
 
-    vcom_printf(" output_cache_array_addr: 0x%X (this should be from RAM2 at 0x2007D000)\n\r",&G_output_cache);
+    vcom_printf(" output_cache_array_addr: 0x%X (RAM2 addr at 0x2007D000)\n\r",&G_output_cache);
 
 }
 
@@ -371,4 +379,26 @@ bool validate_pin_id(uint8_t pin_id)
      return false;
    }
  }
+
+
+void cli_set_color(int argc, char **argv) {
+
+  if(argc == 0)
+    {
+     vcom_printf( "usage: set color <enable|disable> \n\r");
+     return;
+    }
+
+  char *subcommand_set_color = argv[0];
+
+  if (strcmp(subcommand_set_color, "enable") == 0) {
+         G_use_color = true;
+      }
+  else if(strcmp(subcommand_set_color, "disable") == 0)
+      {
+         G_use_color = false;
+      }
+  else
+      vcom_printf( "ERROR: invalid parameter. Should be: <enable|disable>\n\r");
+}
 

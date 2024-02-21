@@ -12,8 +12,8 @@ void init_rom_dumper(uint8_t addr_width, uint8_t data_width, bool ce, bool oe, c
 
   rom_dumper_settings->address_width = addr_width;
   rom_dumper_settings->data_width = data_width;
-  rom_dumper_settings->ce_active_low = ce;
-  rom_dumper_settings->oe_active_low = oe;
+  rom_dumper_settings->ce_active = ce;
+  rom_dumper_settings->oe_active = oe;
   strcpy(rom_dumper_settings->filename,filename);
 
   // review:

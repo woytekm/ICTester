@@ -25,15 +25,15 @@ void cli_set_rom_dumper(int argc, char **argv)
         return;
     }
 
-    bool ce_low,oe_low;
+    bool ce,oe;
     uint8_t addr_bits = atoi(argv[0]);
     uint8_t data_bits = atoi(argv[1]);
     char *ce_active = argv[2];
     char *oe_active = argv[3];
     char *filename = argv[4];
 
-    if(addr_bits > 18)
-     { vcom_printf("ERROR: addr_bits too long (max 18 bits)\r\n");
+    if(addr_bits > 20)
+     { vcom_printf("ERROR: addr_bits too long (max 20 bits)\r\n");
         return; }
 
     if(data_bits > 8)
@@ -45,10 +45,10 @@ void cli_set_rom_dumper(int argc, char **argv)
      { vcom_printf("ERROR: incorrect CE/OE flags: %c %c %c (should be L or H).\r\n",ce_active[0],oe_active[0]);
         return; }
 
-    if(lh_to_bool(ce_active[0])) ce_low = false; else ce_low = true;
-    if(lh_to_bool(oe_active[0])) oe_low = false; else oe_low = true;
+    if(lh_to_int(ce_active[0])) ce = 1; else ce = 0;
+    if(lh_to_int(oe_active[0])) oe = 1; else oe = 0;
 
-    init_rom_dumper(addr_bits, data_bits, ce_low, oe_low, filename, &G_rom_dumper_settings);
+    init_rom_dumper(addr_bits, data_bits, ce, oe, filename, &G_rom_dumper_settings);
     
 
 }
@@ -57,11 +57,11 @@ void cli_set_rom_dumper(int argc, char **argv)
 void cli_show_rom_dumper(int argc, char **argv)
 {
 
- vcom_printf("Current ROM dumper parameters:\r\n");
+ vcom_cprintf("\e[0;36mCurrent ROM dumper parameters:\e[0m\r\n","Current ROM dumper parameters:\r\n");
  vcom_printf("  Address bus width: %d bit \r\n",G_rom_dumper_settings.address_width);
  vcom_printf("  Data bus width: %d bit \r\n",G_rom_dumper_settings.data_width);
- vcom_printf("  CE active low: %d \r\n",G_rom_dumper_settings.ce_active_low);
- vcom_printf("  OE active low: %d \r\n",G_rom_dumper_settings.oe_active_low);
+ vcom_printf("  CE active: %c \r\n",sh_lvl_set(G_rom_dumper_settings.ce_active));
+ vcom_printf("  OE active: %c \r\n",sh_lvl_set(G_rom_dumper_settings.oe_active));
  vcom_printf("  File to save data to: %s \r\n",G_rom_dumper_settings.filename);
 
  vcom_printf("\n\r--------- pin cfg --------------------\r\n");
@@ -141,18 +141,20 @@ void cli_run_rom_dumper(int argc, char **argv)
        {
          output = 0x0;
          j_low = (uint8_t)j;
-         j_high1 = (uint8_t)j >> 8;
-         j_high2 = (uint8_t)j >> 16; // last two bits of 18 bit address
+         j_high1 = (uint8_t)(j >> 8);
+         j_high2 = (uint8_t)(j >> 16); // last four bits of 20 bit address
+         //vcom_printf("read address: %X, %X, %X\r\n",j_low,j_high1,j_high2);
          set_level_bank(ADDR_LOW_BANK,j_low);
          set_level_bank(ADDR_HIGH_BANK,j_high1);
-         ctlbank = 0b11111110 & (j_high2 << 6); // add last two bits of address to last two unused pins in bank 4
-                                                // this will allow to read 18bit addresses (256K ROM's)
-         set_level_bank(CTRL_BANK,ctlbank);     // set last two address bits on pins 46,47 (if used)
-         ctlbank = 0b11111010 & (j_high2 << 6); // set control bank to combination of control lines (OE goes L)
-                                                // and 17,18 address bits
+         
+         ctlbank = 0b00001110 | (j_high2 << 7); // add last four bits of address to last two unused pins in bank 4
+                                                // this will allow to read 20bit addresses (256K ROM's)
+         set_level_bank(CTRL_BANK,ctlbank);     // set last four address bits on pins 44,45,46,47 (if used)
+         ctlbank = 0b00001010 | (j_high2 << 7); // set control bank to combination of control lines (OE goes L)
+                                                // and 17,18,19,20 address bits
          set_level_bank(CTRL_BANK,ctlbank);     // latch bits on D0-D7
          output = read_level_bank(DATA_BANK);   // read
-         set_level_bank(CTRL_BANK,0b11111110);  // end read
+         set_level_bank(CTRL_BANK,0b00111110);  // end read
     
          read_buffer[byte_ctr++] = output;
 
