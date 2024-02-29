@@ -9,6 +9,32 @@
 #include "gpio_pin.h"
 
 
+
+bool math_eval(const char *expression, uint8_t result) {
+    char op;
+    uint8_t num1, num2;
+    sscanf(expression, "%hhu %c %hhu", &num1, &op, &num2);
+
+    switch (op) {
+        case '+':
+            return num1 + num2 == result;
+        case '-':
+            return num1 - num2 == result;
+        case '*':
+            return num1 * num2 == result;
+        case '/':
+            if (num2 != 0) {
+                return num1 / num2 == result;
+            }
+            else {
+                return false;
+            }
+        default:
+            return false;
+    }
+}
+
+
 char *logic_eval( char *expr, uint8_t *res ){
   enum { LEFT, OP1, MID, OP2, RIGHT } state = LEFT;
   enum { AND, OR, XOR } op = AND;
@@ -80,7 +106,7 @@ bool check_test_criteria(uint8_t tn, uint8_t cn)
   uint16_t i,to_frame;
   uint8_t logic_result;
   
-  char logic_expr[MAX_EXPR_LEN];
+  char expr[MAX_EXPR_LEN];
 
   if(G_test_array[tn] == NULL)
     {
@@ -98,7 +124,7 @@ bool check_test_criteria(uint8_t tn, uint8_t cn)
   switch (G_test_array[tn]->test_criteria[cn]->type)
    {
 
-        case MATCH_EXPRESSION: // expr
+        case MATCH_LEXPR: // expr
                {
                  if(G_test_array[tn]->test_criteria[cn]->to_frame != 0)
                      to_frame = G_test_array[tn]->test_criteria[cn]->to_frame;
@@ -108,7 +134,7 @@ bool check_test_criteria(uint8_t tn, uint8_t cn)
                  for(i = G_test_array[tn]->test_criteria[cn]->from_frame; i<= to_frame; i++)
                   { 
                     logic_result = 255;
-                    sprintf(logic_expr,G_test_array[tn]->test_criteria[cn]->logic_expression, 
+                    sprintf(expr,G_test_array[tn]->test_criteria[cn]->logic_expression, 
                             get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[0],G_test_array[tn]->test_states[i]),   // read pin level for pin_ids[0] (id deciphered from entered expression), for state frame i
                             get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[1],G_test_array[tn]->test_states[i]),
                             get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[2],G_test_array[tn]->test_states[i]),
@@ -125,7 +151,7 @@ bool check_test_criteria(uint8_t tn, uint8_t cn)
                             get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[13],G_test_array[tn]->test_states[i]),
                             get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[14],G_test_array[tn]->test_states[i]),
                             get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[15],G_test_array[tn]->test_states[i]));
-                    logic_eval(logic_expr,&logic_result);
+                    logic_eval(expr,&logic_result);
                     if(logic_result == 255)
                      {
                       vcom_printf("ERROR: logic expression evaluation failed\r\n");
@@ -135,7 +161,7 @@ bool check_test_criteria(uint8_t tn, uint8_t cn)
                      {
                       vcom_printf("    - test criteria %d failed at state frame %d\r\n",cn,i);
                       vcom_printf("       state frame: %d\r\n",i);
-                      vcom_printf("       eval: %s to %d\r\n",logic_expr,logic_result);
+                      vcom_printf("       eval: %s to %d\r\n",expr,logic_result);
                       vcom_printf("       output pin id: %d : %d\r\n",G_test_array[tn]->test_criteria[cn]->output_pin_id,get_plfsa(G_test_array[tn]->test_criteria[cn]->output_pin_id,G_test_array[tn]->test_states[i]));
                       led_signal_test_fail();
                       return false;
@@ -224,6 +250,9 @@ bool check_test_criteria(uint8_t tn, uint8_t cn)
 
                }
                break;
+
+        case MATCH_MEXPR:
+               break; 
 
         default:
                {

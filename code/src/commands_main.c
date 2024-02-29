@@ -76,6 +76,9 @@ void dispatch_cli_command(int cli_argc, char **cli_argv) {
             else if (strcmp(subcommand_set, "rom-dumper") == 0) {
                 cli_set_rom_dumper(cli_argc - 2, cli_argv + 2);
             }
+            else if (strcmp(subcommand_set, "button-cmd") == 0) {
+                cli_set_button_cmd(cli_argc - 2, cli_argv + 2);
+            }
             else if (strcmp(subcommand_set, "color") == 0) {
                 cli_set_color(cli_argc - 2, cli_argv + 2);
             }
@@ -241,6 +244,17 @@ void dispatch_cli_command(int cli_argc, char **cli_argv) {
 }
 
 
+void cli_set_button_cmd(int argc, char **argv){
+
+ G_set_btn_cmd[0] = '\0';
+ for(uint8_t i = 0; i < argc; i++)
+   {
+    strcat(G_set_btn_cmd,argv[i]);
+    strcat(G_set_btn_cmd," ");
+   }
+  strcat(G_set_btn_cmd,"\n");
+}
+
 
 void display_help() {
     vcom_printf("available commands:\n\r");
@@ -261,8 +275,12 @@ void display_help() {
     vcom_printf(" set test frame-interval <test_name> <ms>: set test frame interval to ms miliseconds\r\n");
     vcom_printf(" set test io-settings <test_name> <bank 1: I|O>  <bank 2: I|O>  <bank 3: I|O>  <bank 4: I|O>\r\n");
     vcom_printf(" set test frame <test_name> <number> <bitmap 1> <bitmap 2> <bitmap 3> <bitmap 4>\r\n");
-    vcom_printf(" set test criteria <test_name> <criteria number> expr <expr> from-frame <number> to-frame <number>\r\n");
-    vcom_printf("   expr example: Y1=!((A1_AND_B1_AND_C1)_OR_(D1_AND_E1_AND_F1)) \r\n");
+    vcom_printf(" set test criteria <test_name> <criteria number> lexpr <expr> from-frame <number> to-frame <number>\r\n");
+    vcom_printf("   lexpr example: Y1=!((A1_AND_B1_AND_C1)_OR_(D1_AND_E1_AND_F1)) \r\n");
+    vcom_printf("   where Y1 = output pin alias used to check expression result\r\n");
+    vcom_printf("         A1,B1,C1,D1,E1,F1 = input pin aliases used to calculate expression value\r\n");
+    vcom_printf(" set test criteria <test_name> <criteria number> mexpr <expr> from-frame <number> to-frame <number>\r\n");
+    vcom_printf("   mexpr example: B3=(B1+B2) \r\n");
     vcom_printf("   where Y1 = output pin alias used to check expression result\r\n");
     vcom_printf("         A1,B1,C1,D1,E1,F1 = input pin aliases used to calculate expression value\r\n");
     vcom_printf(" set test criteria <test_name> <criteria number> val <val pin aliases: \"(pin1,pin2,pin3,pin4,pin5)=0xA\"> from-frame <number> to-frame <number>\r\n");
@@ -300,6 +318,7 @@ void display_help() {
     vcom_printf(" load <path> - load test from file\n\r");
     vcom_printf(" save test <name> to <filename> - save test <name> to a file <filename>\n\r");
     vcom_printf("\r\nother:\r\n");
+    vcom_printf(" set button-cmd <command> - attach a CLI command to a device button\r\n");
     vcom_printf(" set color <enable|disable>: enable/disable color in CLI\n\r");
     vcom_printf(" set dut-power <enable|disable>: enable/disable power to DUT\n\r");
     vcom_printf(" hwinfo: show system information\n\r");

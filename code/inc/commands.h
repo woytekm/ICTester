@@ -37,6 +37,7 @@ void cli_run(int argc, char **argv);
 void cli_show_io(void);
 void cli_show_clock(void);
 void cli_set_color(int argc, char **argv);
+void cli_set_button_cmd(int argc, char **argv);
 
 void cli_set_test_name(int argc, char** argv);
 void cli_set_test_frame_interval(int argc, char** argv);

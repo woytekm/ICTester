@@ -91,14 +91,15 @@ void cli_set_dram_test(int argc, char **argv)
 
 void cli_show_dram_test(int argc, char **argv)
 {
- 
+ uint16_t addr_max = pow(2,G_dram_test_settings.address_width);
+
  vcom_cprintf("\e[0;36mCurrent DRAM test parameters:\e[0m\r\n","Current DRAM test parameters:\r\n");
  vcom_printf("  DRAM type: ");
  if(G_dram_test_settings.dram_type == SINGLE_PORT)
    vcom_printf("single-port (multiplexed input/output data bus) \r\n");
  else if(G_dram_test_settings.dram_type == DUAL_PORT)
    vcom_printf("dual-port (separate input and output data buses) \r\n");
- vcom_printf("  Address bus width: %d bit \r\n",G_dram_test_settings.address_width);
+ vcom_printf("  Address bus width: %d bit, addr_max: %d (0x%X)\r\n",G_dram_test_settings.address_width,addr_max,addr_max);
  vcom_printf("  Data bus width: %d bit \r\n",G_dram_test_settings.data_width);
  vcom_printf("  CE active: %c \r\n",sh_lvl_set(G_dram_test_settings.ce_active));
  vcom_printf("  OE active: %c \r\n",sh_lvl_set(G_dram_test_settings.we_active));
@@ -121,7 +122,10 @@ void cli_run_dram_test(int argc, char **argv)
   uint32_t errors = 0;
   uint8_t dram_type = G_dram_test_settings.dram_type;
 
-   vcom_printf("DRAM type: ");
+  if(G_dram_test_settings.address_width == 16)
+   addr_max = 0xFFFF;
+
+ vcom_printf("DRAM type: ");
  if(G_dram_test_settings.dram_type == SINGLE_PORT)
    vcom_printf("single-port\r\n");
  else if(G_dram_test_settings.dram_type == DUAL_PORT)

@@ -111,7 +111,7 @@ void init_leds(void)
 
 void led_signal_test_fail(void)
 {
- for(uint8_t i = 0; i < 5; i++)
+ for(uint8_t i = 0; i < 3; i++)
   {
     set_pin_high_simple(PIN_RED_LED);
     delayMS(110);
@@ -122,7 +122,7 @@ void led_signal_test_fail(void)
 
 void led_signal_test_ok(void)
 {
- for(uint8_t i = 0; i < 5; i++)
+ for(uint8_t i = 0; i < 3; i++)
   {
     set_pin_high_simple(PIN_GREEN_LED);
     delayMS(110);
@@ -382,6 +382,8 @@ void init_pins(void)
     Chip_IOCON_PinMux(LPC_IOCON, 0, 8, IOCON_MODE_INACT, IOCON_FUNC2);
     Chip_IOCON_PinMux(LPC_IOCON, 0, 7, IOCON_MODE_INACT, IOCON_FUNC2);
     Chip_IOCON_PinMux(LPC_IOCON, 0, 6, IOCON_MODE_INACT, IOCON_FUNC0); // SSEL is normal GPIO pin
+    
+    Chip_IOCON_PinMux(LPC_IOCON, 0, 2, IOCON_MODE_INACT, IOCON_FUNC0); // button
 
     // set all pins used for tester I/O to input/LOW
     for (uint8_t i = 1; i < sizeof(G_gpio_map) / sizeof(G_gpio_map[0]); ++i) {

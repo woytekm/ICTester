@@ -315,8 +315,6 @@ void cli_run_test(int argc, char** argv) {
     char *args[3];
     char dir[2];
     char bank[2];
-    char cmd1[10];
-    char cmd2[10];
     uint8_t read_banks[4];
     uint8_t write_banks[4];
 
@@ -438,24 +436,12 @@ void cli_run_test(int argc, char** argv) {
 
       vcom_printf("* enabling banks...\r\n");
       for(uint8_t i = 1; i < 5; i++)
-       {
-        _argc = 3;
-        sprintf(bank,"%d",i);
-        args[1] = (char *)&bank;
-        sprintf(cmd1,"bank");
-        args[0] = (char *)&cmd1;
-        sprintf(cmd2,"enable");
-        args[2] = (char *)&cmd2;
-        cli_set_io(_argc,args);
-       }
+        set_io_bank(i,"enable");
 
       vcom_printf("* enabling DUT power...\r\n");
-      _argc = 1;
-      sprintf(cmd1,"enable");
-      args[0] = (char *)&cmd1;
-      cli_set_dut_power(_argc,args);
+      set_dut_power("enable");
 
-      delayMS(1000);
+      delayMS(100);
 
       vcom_printf("* running test...\r\n");
 
@@ -487,23 +473,11 @@ void cli_run_test(int argc, char** argv) {
       delayMS(100);
  
       vcom_printf("* disabling DUT power...\r\n");
-      _argc = 1;
-      sprintf(cmd1,"disable");
-      args[0] = (char *)&cmd1;
-      cli_set_dut_power(_argc,args);
+      set_dut_power("disable");
 
       vcom_printf("* disabling banks...\r\n");
       for(uint8_t i = 1; i < 5; i++)
-       {
-        _argc = 3;
-        sprintf(bank,"%d",i);
-        args[1] = (char *)&bank;
-        sprintf(cmd1,"bank");
-        args[0] = (char *)&cmd1;
-        sprintf(cmd2,"disable");
-        args[2] = (char *)&cmd2;
-        cli_set_io(_argc,args);
-       }
+        set_io_bank(i,"disable");
 
       vcom_printf("* checking test criteria...\r\n");
 

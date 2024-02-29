@@ -88,6 +88,9 @@ void cli_run_sram_test(int argc, char **argv)
   uint8_t output,j_low,j_high, data_pattern;
   uint16_t errors = 0;
 
+  if(G_sram_test_settings.address_width == 16)
+   addr_max = 0xFFFF;
+
   vcom_cprintf("\e[0;36mSRAM test running\e[0m\r\n","SRAM test running\r\n");
   vcom_printf("addr width: %d bit, addr_max: 0x%X\r\n",G_sram_test_settings.address_width,(addr_max-1));
   vcom_printf("data width: %d bit, data_max: 0x%X\r\n",G_sram_test_settings.data_width,data_bitmask);

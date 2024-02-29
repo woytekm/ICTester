@@ -247,7 +247,7 @@ void cli_set_test_criteria(int argc, char** argv) {
         return;
     }
 
-    const char *criteria_type[] = {"expr", "val", "ctr"};
+    const char *criteria_type[] = {"lexpr", "val", "ctr", "mexpr"};
     char *test_name = argv[0];
     char *criteria_idx_str = argv[1];
     char *type = argv[2];
@@ -300,9 +300,9 @@ void cli_set_test_criteria(int argc, char** argv) {
 
     switch (i) {
 
-        case MATCH_EXPRESSION: // expr
+        case MATCH_LEXPR: // logic expr
                {
-                 G_test_array[ti]->test_criteria[ci]->type = MATCH_EXPRESSION;
+                 G_test_array[ti]->test_criteria[ci]->type = MATCH_LEXPR;
                  if((argc != 8)&&(argc != 4))
                    {
                      vcom_printf("ERROR: invalid number of parameters for set test criteria expr (%d)\r\n",argc);

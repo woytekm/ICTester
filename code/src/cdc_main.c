@@ -11,6 +11,7 @@
 #include <string.h>
 #include <cr_section_macros.h>
 
+#include "chip.h"
 #include "app_usbd_cfg.h"
 #include "cdc_vcom.h"
 #include "stopwatch.h"
@@ -38,9 +39,10 @@
  ****************************************************************************/
 
 bool G_use_color = true;
+char G_btn_cmd[64];
+char G_set_btn_cmd[64];
 
 static struct embedded_cli cli;
-
 USBD_HANDLE_T g_hUsb;
 uint8_t g_rxBuff[256];
 
@@ -77,6 +79,13 @@ static void usb_pin_clk_init(void)
 /*****************************************************************************
  * Public functions
  ****************************************************************************/
+
+void EINT3_IRQHandler(void) {
+    strcpy(G_btn_cmd,G_set_btn_cmd);
+    Chip_GPIOINT_ClearIntStatus(LPC_GPIOINT, GPIOINT_PORT0, 1 << 2);
+    NVIC_ClearPendingIRQ(EINT3_IRQn);
+}
+
 
 /**
  * @brief	Handle interrupt from USB0
@@ -200,35 +209,51 @@ int main(void)
 		}
 	}
 
-        init_pin_array(); // initialize analyzer pin data structures
-        init_pins();      // initialize all pins to default state
-        init_timers();
-        init_leds();
-        init_sram_test(SRAM_DFT_ADDR_WIDTH,SRAM_DFT_DATA_WIDTH,SRAM_CE_ACT,SRAM_WE_ACT,SRAM_OE_ACT,SRAM_LOOPS,&G_sram_test_settings);
-        init_dram_test(DRAM_DFT_ADDR_WIDTH,DRAM_DFT_DATA_WIDTH,DRAM_CE_ACT,DRAM_WE_ACT,DRAM_OE_ACT,DRAM_RAS_ACT,DRAM_CAS_ACT,DRAM_LOOPS,&G_dram_test_settings);
-        init_rom_dumper(ROM_DFT_ADDR_WIDTH,ROM_DFT_DATA_WIDTH,ROM_CE_ACT,ROM_OE_ACT,"rom.bin",&G_rom_dumper_settings);
+       Chip_GPIOINT_ClearIntStatus(LPC_GPIOINT, GPIOINT_PORT0, 1 << 2);
+       Chip_GPIOINT_SetIntRising(  LPC_GPIOINT, GPIOINT_PORT0, 1 << 2);
+       NVIC_ClearPendingIRQ(EINT3_IRQn); // avoid extraneous IRQ on restart
+       NVIC_EnableIRQ(EINT3_IRQn);
 
-        bool done = false;
 
-        LPC17xx_SPI_Init();
+       init_pin_array(); // initialize analyzer pin data structures
+       init_pins();      // initialize all pins to default state
+       init_timers();
+       init_leds();
+       init_sram_test(SRAM_DFT_ADDR_WIDTH,SRAM_DFT_DATA_WIDTH,SRAM_CE_ACT,SRAM_WE_ACT,SRAM_OE_ACT,SRAM_LOOPS,&G_sram_test_settings);
+       init_dram_test(DRAM_DFT_ADDR_WIDTH,DRAM_DFT_DATA_WIDTH,DRAM_CE_ACT,DRAM_WE_ACT,DRAM_OE_ACT,DRAM_RAS_ACT,DRAM_CAS_ACT,DRAM_LOOPS,&G_dram_test_settings);
+       init_rom_dumper(ROM_DFT_ADDR_WIDTH,ROM_DFT_DATA_WIDTH,ROM_CE_ACT,ROM_OE_ACT,"rom.bin",&G_rom_dumper_settings);
 
-        status = disk_initialize(0);
-        SEGGER_RTT_printf(0,"disk_initialize(): %d\n",status);
+       G_btn_cmd[0] = '\0';
+       G_set_btn_cmd[0] = '\0';
 
-        uint8_t i,bytes;
+       bool done = false;
 
-        embedded_cli_init(&cli, "ICTester#", vcom_putch, stdout);
-        embedded_cli_prompt(&cli);
+       LPC17xx_SPI_Init();
 
-        set_pin_high_simple(PIN_YELLOW_LED);  // just tur it on as a "system ready" indicator for now
+       status = disk_initialize(0);
+       SEGGER_RTT_printf(0,"disk_initialize(): %d\n",status);
 
-        while (!done) {
-           
+       uint8_t i,bytes;
+
+       embedded_cli_init(&cli, "ICTester#", vcom_putch, stdout);
+       embedded_cli_prompt(&cli);
+
+       set_pin_high_simple(PIN_YELLOW_LED);  // just tur it on as a "system ready" indicator for now
+
+       while (!done) {
+          
            delayMS(5);
 
            if(pVcom->rx_count == 0)
               __WFI();
-           bytes = vcom_bread(&g_hUsb,&g_rxBuff[0], 256);
+           bytes = strlen(G_btn_cmd);
+           if(bytes > 0)
+            {
+             strcpy((char *)g_rxBuff,G_btn_cmd);
+             G_btn_cmd[0] = '\0';
+            }
+           else
+             bytes = vcom_bread(&g_hUsb,&g_rxBuff[0], 256);
 
            set_pin_high_simple(PIN_GREEN_LED); 
 

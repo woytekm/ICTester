@@ -79,9 +79,10 @@ typedef enum {
 
 // Enumerated type for pin state
 typedef enum {
-    MATCH_EXPRESSION, // check boolean expression 
+    MATCH_LEXPR,      // check boolean expression 
     MATCH_VALUE,      // check for value in bank
-    MATCH_COUNTER1    // check if bank acts as a couter
+    MATCH_COUNTER1,   // check if bank acts as a couter
+    MATCH_MEXPR       // check math expression
 } test_criteria_type;
 
 // Array of test configurations

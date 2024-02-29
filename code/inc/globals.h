@@ -3,3 +3,6 @@ extern __DATA(RAM2) uint8_t G_output_cache[MAX_STATES][4];  // let's keep this i
 extern __DATA(RAM2) uint8_t usb_structures[4096];
 extern uint8_t G_cmd_cnt;
 extern bool G_use_color;
+extern char G_btn_cmd[64];
+extern char G_set_btn_cmd[64];
+
