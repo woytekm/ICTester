@@ -176,7 +176,6 @@ void usd_load_file(char *path)
 
     f_mount(0,&drive);
 
-    /* Open a text file */
     fr = f_open(&fil, path, FA_READ);
     if (fr)
      {
@@ -185,14 +184,12 @@ void usd_load_file(char *path)
       return;
      }
 
-    /* Read every line and display it */
     while (f_gets(line, sizeof line, &fil)) {
       tokenize_string(line,&my_argc,&my_argv); 
       dispatch_cli_command(my_argc, my_argv);   
-      free_argv(my_argc,&my_argv);
+      free_argv(my_argc,my_argv);
     }
 
-    /* Close the file */
     f_close(&fil);
     f_mount(0,NULL);
 
@@ -241,4 +238,64 @@ void usd_save_test_to_file(char *test_name, char *path)
 }
 
 
+void usd_join(char *pf1, char *pf2, char *pt)
+ {
+   
+    FIL ft;        /* File object */
+    FIL ff1,ff2;
+    FRESULT fr;     /* FatFs return code */
+    FATFS drive;
+    UINT br,bw;
+
+    BYTE buffer[2];
+
+    f_mount(0,&drive);
+
+
+    fr = f_open(&ff1, pf1, FA_OPEN_EXISTING | FA_READ);
+    if (fr<0)
+       {
+        vcom_printf("ERROR: cannot open file %s (%d).\r\n",pf1,fr);
+        f_mount(0,NULL);
+        return;
+       }
+
+    fr = f_open(&ff2, pf2, FA_OPEN_EXISTING | FA_READ);
+    if (fr<0)
+       {
+        vcom_printf("ERROR: cannot write to file %s (%d).\r\n",pf2,fr);
+        f_mount(0,NULL);
+        return;
+       }
+
+    fr = f_unlink(pt);
+
+    fr = f_open(&ft, pt, FA_CREATE_NEW);
+    fr = f_close(&ft);
+    fr = f_open(&ft, pt, FA_WRITE);
+
+    if (fr<0)
+       {
+        vcom_printf("ERROR: cannot write to file %s (%d).\r\n",pt,fr);
+        f_mount(0,NULL);
+        return;
+       }
+
+    while(true)
+     {
+      fr = f_read(&ff1, buffer, 1, &br);
+      if (fr || br == 0) break;
+      fr = f_read(&ff2, buffer+1, 1, &br);
+      if (fr || br == 0) break;
+      fr = f_write(&ft, buffer, 2, &bw);
+      if (fr || bw != 2) break;     
+     }
+
+    f_close(&ft);
+    f_close(&ff1);
+    f_close(&ff2);
+
+    f_mount(0,NULL);
+
+ }
 

@@ -14,6 +14,7 @@
 #include "globals.h"
 #include "utils.h"
 
+
 #include "LPC17xx.h"
 
 uint16_t cache_entries;
@@ -23,69 +24,6 @@ uint8_t G_cmd_cnt;
 __DATA(RAM2) char G_command_buffer[MAX_TEST_CMDS][MAX_CMD_LEN];
 __DATA(RAM2) uint8_t G_output_cache[MAX_STATES][4];  // let's keep this in AHB RAM2 (second 32KB block of SRAM available in LPC1769). First 4KB in this block is allocated by USB OTG data structures. 
 __DATA(RAM2) uint8_t usb_structures[4096];            // preserve preallocated USB OTG data structures in AHB RAM2
-
-// Helper function to parse and convert bank bitmap from string to uint8_t
-uint8_t parse_bank_bitmap(char* bitmap_str) {
-    // Check if the string starts with "0b" or "0B"
-    if (bitmap_str[0] == '0' && (bitmap_str[1] == 'b' || bitmap_str[1] == 'B')) {
-        return strtol(bitmap_str + 2, NULL, 2);  // Convert binary string
-    } else {
-        return strtol(bitmap_str, NULL, 0);  // Automatically detect base (hex or decimal)
-    }
-}
-
-uint8_t parse_uint8_string(const char* bitmap_str) {
-    // Check if the string starts with "0b" or "0B"
-    if (bitmap_str[0] == '0' && (bitmap_str[1] == 'b' || bitmap_str[1] == 'B')) {
-        return strtol(bitmap_str + 2, NULL, 2);  // Convert binary string
-    } else {
-        return strtol(bitmap_str, NULL, 0);  // Automatically detect base (hex or decimal)
-    }
-}
-
-void uint8_to_binary_string(uint8_t value, char* binary_str) {
-    // Ensure the binary_str is large enough to store the binary representation
-    snprintf(binary_str, 10, "0b");
-    
-    // Convert each bit to '0' or '1' and append to the string
-    for (int i = 7; i >= 0; --i) {
-        binary_str[2 + (7 - i)] = (value & (1 << i)) ? '1' : '0';
-    }
-
-    // Null-terminate the string
-    binary_str[10] = '\0';
-}
-
-// Sets specified bits (bit1 and bit2) in the given byte to the specified value
-void set_bits(uint8_t *byte, uint8_t bit1, uint8_t bit2, uint8_t value) {
-    if (bit1 > 7 || bit2 > 7 || bit1 > bit2 || value > 3) {
-        // Invalid bit positions or value
-        return;
-    }
-
-    // Calculate the mask to modify the specified bits
-    uint8_t mask = 0x0;
-    mask |= (1 << bit1);
-    mask |= (1 << bit2);
-    // Clear the specified bits
-    (*byte) &= ~mask;
-    // Set the specified bits to the new value
-    (*byte) |= (value << bit1);
-
-}
-
-uint8_t extract_bits(uint8_t byte, uint8_t bit1, uint8_t bit2) {
-    if (bit1 > 7 || bit2 > 7 || bit1 > bit2) {
-        // Invalid bit positions
-        return 0;
-    }
-
-    // Calculate the mask to extract the specified bits
-    uint8_t mask = ((1 << (bit2 - bit1 + 1)) - 1) << bit1;
-
-    // Use bit manipulation to extract the bits
-    return (byte & mask) >> bit1;
-}
 
 
 void cli_set_test(int argc, char **argv) {
@@ -111,7 +49,6 @@ void cli_set_test(int argc, char **argv) {
     } else {
         vcom_printf( "unknown subcommand for 'set test': %s\n\r", subcommand_set_level);
     }
-
 }
 
 
@@ -124,7 +61,6 @@ void cli_set_test_pin_alias(int argc, char** argv) {
 
     char* test_name = argv[0];
     char* alias_param = argv[1];
-
     
     // Find the test index
     int test_index = -1;
@@ -146,7 +82,7 @@ void cli_set_test_pin_alias(int argc, char** argv) {
     char* token = strtok(alias_param, "=");
     if (token == NULL) {
         vcom_printf("ERROR: invalid format for pin alias - use pin_number=pin_alias.\r\n");
-        free_argv(argc,&argv_copy);
+        free_argv(argc,argv_copy);
         return;
     }
 
@@ -154,7 +90,7 @@ void cli_set_test_pin_alias(int argc, char** argv) {
     token = strtok(NULL, "=");
     if (token == NULL) {
         vcom_printf("ERROR: invalid format for pin alias - use pin_number=pin_alias.\r\n");
-        free_argv(argc,&argv_copy);
+        free_argv(argc,argv_copy);
         return;
     }
 
@@ -167,14 +103,14 @@ void cli_set_test_pin_alias(int argc, char** argv) {
     // Check if conversion was successful and within the valid pin range
     if (*endptr != '\0' || (pin_number < 10 || pin_number > 47)) {
         vcom_printf("ERROR: invalid pin number: %s\r\n", pin_number_str);
-        free_argv(argc,&argv_copy);
+        free_argv(argc,argv_copy);
         return;
     }
 
     // Check the length of pin_alias
     if (strlen(pin_alias) > 4) {
         vcom_printf("ERROR: pin alias can have a maximum of 4 characters.\r\n");
-        free_argv(argc,&argv_copy);
+        free_argv(argc,argv_copy);
         return;
     }
 
@@ -183,7 +119,7 @@ void cli_set_test_pin_alias(int argc, char** argv) {
     vcom_printf("pin alias set: pin %u, alias: %s \r\n", pin_number, pin_alias);
 
     replace_or_append_cmd_buff("set test pin-alias ",argc,argv_copy);
-    free_argv(argc,&argv_copy);
+    free_argv(argc,argv_copy);
 }
 
 
@@ -206,7 +142,6 @@ void cli_show_test(int argc, char **argv) {
     }
 
 }
-
 
 
 void apply_test_frame(uint8_t *io_settings,test_frame_t *frame,uint8_t *test_states,uint8_t *test_counters)
@@ -253,21 +188,27 @@ void apply_test_frame(uint8_t *io_settings,test_frame_t *frame,uint8_t *test_sta
     frame->done = true;
  }
 
+
 void apply_cached_frame(uint8_t *io_settings,uint8_t *test_states,uint16_t iter, uint8_t *read_banks, uint8_t *write_banks)
  {
     uint8_t ctr = 0;
+    //SEGGER_RTT_printf(0,"apply_cached_frame: iteration %d\n",iter);
 
-    while(write_banks[ctr++] != 0x0)
+    while(write_banks[ctr] != 0x0)
      {
-       set_level_bank(write_banks[ctr-1],G_output_cache[iter][write_banks[ctr-1]]);
-       test_states[write_banks[ctr-1]] = G_output_cache[iter][write_banks[ctr-1]];
+       //SEGGER_RTT_printf(0,"  apply_cached_frame: write %X to bank %d \n",G_output_cache[iter][write_banks[ctr]],write_banks[ctr]);
+       set_level_bank(write_banks[ctr],G_output_cache[iter][write_banks[ctr]]);
+       test_states[write_banks[ctr]] = G_output_cache[iter][write_banks[ctr]];
+       ctr++;
      }
 
     ctr = 0;
-
-    while(read_banks[ctr++] != 0x0)
+    
+    while(read_banks[ctr] != 0x0)
      {
-       test_states[read_banks[ctr-1]] = read_level_bank(read_banks[ctr-1]);
+       test_states[read_banks[ctr]] = read_level_bank(read_banks[ctr]);
+       //SEGGER_RTT_printf(0,"  apply_cached_frame: read %X from bank %d \n",test_states[read_banks[ctr]],read_banks[ctr]);
+       ctr++;
      }
  }
 
@@ -276,6 +217,7 @@ void cache_test_frame(uint8_t *io_settings,test_frame_t *frame,uint8_t *test_sta
  {
     uint8_t use_counters[5];
 
+    //SEGGER_RTT_printf(0,"cache_test_frame: iteration %d\n",iter);
     use_counters[1] = extract_bits(frame->use_counters,0,1);
     use_counters[2] = extract_bits(frame->use_counters,2,3);
     use_counters[3] = extract_bits(frame->use_counters,4,5);
@@ -284,22 +226,28 @@ void cache_test_frame(uint8_t *io_settings,test_frame_t *frame,uint8_t *test_sta
     for(uint8_t i = 1; i < 5; i++)
      if(io_settings[i] == 0)
        {
+
+         //SEGGER_RTT_printf(0,"  cache_test_frame: bank %d is set to output.\n",i);
          if(use_counters[i] == 0)
           {
+           //SEGGER_RTT_printf(0,"  cache_test_frame: bank %d is not using counters, bitmap: %x.\n",i,frame->bank_bitmap[i]);
            G_output_cache[iter][i] = frame->bank_bitmap[i];
           }
          else if(use_counters[i] == 1)  // load counter value from frame and apply to bank
           {
+            //SEGGER_RTT_printf(0,"  cache_test_frame: bank %d is setting counter %d to %d and applying to bank\n",i,frame->counter_to_bank_assignment[i],frame->bank_bitmap[i]);
             test_counters[frame->counter_to_bank_assignment[i]] = frame->bank_bitmap[i];
             G_output_cache[iter][i] = frame->bank_bitmap[i];
           }
          else if(use_counters[i] == 2) // increase counter value by 1 and apply to bank
           {
             test_counters[frame->counter_to_bank_assignment[i]]++;
+            //SEGGER_RTT_printf(0,"  cache_test_frame: bank %d is incr. counter %d to %d and applying to bank\n",i,frame->counter_to_bank_assignment[i],test_counters[frame->counter_to_bank_assignment[i]]);
             G_output_cache[iter][i] = test_counters[frame->counter_to_bank_assignment[i]];
           }
          else if(use_counters[i] == 3) // take actual counter value and apply to bank
           {
+            //SEGGER_RTT_printf(0,"  cache_test_frame: bank %d is applying current counter %d val %d to bank\n",i,frame->counter_to_bank_assignment[i],test_counters[frame->counter_to_bank_assignment[i]]);
             G_output_cache[iter][i] = test_counters[frame->counter_to_bank_assignment[i]];
           }
 
@@ -312,21 +260,15 @@ void cli_run_test(int argc, char** argv) {
 
     char* test_name = argv[0];
 
-    char *args[3];
-    char dir[2];
-    char bank[2];
     uint8_t read_banks[4];
     uint8_t write_banks[4];
-
-    //uint8_t bank_counters[5];
-    uint8_t counter_match_val = 0;
+    uint8_t counter_match_val[MAX_COUNTERS] = { 0 };
     uint8_t counter_to_match = 0;
+    uint8_t frame_matched_counter = 0;
     bool reached_counter_match = false;
-    bool in_counter_match_loop = false;
+    bool in_counter_match_loop[MAX_COUNTERS] = { false };
     bool state_overflow = false;
     uint16_t loops = 0;
-
-    uint8_t _argc;
 
     // Find the test index
     int test_index = -1;
@@ -344,69 +286,76 @@ void cli_run_test(int argc, char** argv) {
 
 
     // set bank direction according to test settings
-    vcom_printf("* running test setup...\r\n");
+    vcom_cprintf("\e[0;36m*\e[0m running test setup...\n\r","* running test setup...\n\r");
 
     uint8_t r = 0,w = 0;
 
     for(uint8_t i = 1; i < 5; i++)
      {
-      _argc = 2;
-      sprintf(bank,"%d",i);
-      args[0] = (char *)&bank;
-
       if(G_test_array[test_index]->io_settings[i] == 0)
         { 
-          strcpy(dir,"O");
-          args[1] = (char *)&dir;
-          cli_set_direction_bank(_argc,args);
+          set_direction_bank(i,PIN_OUTPUT);
           write_banks[w++]=i;
         }
       else if(G_test_array[test_index]->io_settings[i] == 255)
         {
-          strcpy(dir,"I");
-          args[1] = (char *)&dir;
-          cli_set_direction_bank(_argc,args);
+          set_direction_bank(i,PIN_INPUT);
           read_banks[r++]=i;
         }
      }
 
     write_banks[w] = read_banks[r] = 0x0;
 
-    vcom_printf("* generating test data for %s...\r\n",G_test_array[test_index]->test_name);
+    vcom_cprintf("\e[0;36m*\e[0m generating test data for %s...\n\r","* generating test data for %s...\n\r",G_test_array[test_index]->test_name);
 
     G_test_array[test_index]->iterations_done = 0;
 
     for (uint8_t i = 0; i < G_test_array[test_index]->frame_count; i++) {
-   
-    if(in_counter_match_loop)
-     if(G_test_array[test_index]->counters[counter_to_match] == counter_match_val)
-       reached_counter_match = true;
+    
+     //SEGGER_RTT_printf(0,"test data gen: frame %d \n",i);
+    
+     if(G_test_array[test_index]->test_frames[i]->type == MATCH_COUNTER)
+      frame_matched_counter = G_test_array[test_index]->test_frames[i]->bank_bitmap[1];      
  
-    if(G_test_array[test_index]->test_frames[i]->type == MATCH_COUNTER)
+     if(in_counter_match_loop[frame_matched_counter])
+       if(G_test_array[test_index]->counters[frame_matched_counter] ==  
+            counter_match_val[frame_matched_counter])
+        {      
+         reached_counter_match = true;
+         //SEGGER_RTT_printf(0," test data gen: counter %d matched value %d\n",counter_to_match,counter_match_val);
+        } 
+
+     if(G_test_array[test_index]->test_frames[i]->type == MATCH_COUNTER)
       {
+        //SEGGER_RTT_printf(0," test data gen: frame %d is MATCH_COUNTER\n",i);
         if(reached_counter_match)
          {
+           //SEGGER_RTT_printf(0," test data gen: frame %d reached counter match\n",i);
            loops = 0;
-           counter_match_val = counter_to_match = 0;
-           reached_counter_match = in_counter_match_loop = false;
-           G_test_array[test_index]->counters[G_test_array[test_index]->test_frames[i]->bank_bitmap[1]] = 0;
+           counter_match_val[frame_matched_counter] = counter_to_match = 0;
+           reached_counter_match = in_counter_match_loop[frame_matched_counter] = false;
+           G_test_array[test_index]->counters[frame_matched_counter] = 0;
            continue;
          }
         else
          {
           if(loops > 256) break; // this indicates that we are in a deadlock and we should break out from loop
-          counter_match_val = G_test_array[test_index]->test_frames[i]->bank_bitmap[2];          
-          counter_to_match = G_test_array[test_index]->test_frames[i]->bank_bitmap[1];
-          in_counter_match_loop = true;
+          counter_match_val[frame_matched_counter] = 
+                                     G_test_array[test_index]->test_frames[i]->bank_bitmap[2];          
+          counter_to_match = frame_matched_counter;
+          in_counter_match_loop[frame_matched_counter] = true;
           loops++;
-          i = G_test_array[test_index]->test_frames[i]->bank_bitmap[0]-1;
+          //SEGGER_RTT_printf(0," test data gen: frame %d counter match loop %d, no match, jump to frame %d\n",i,loops,G_test_array[test_index]->test_frames[i]->bank_bitmap[0]);
+          i = G_test_array[test_index]->test_frames[i]->bank_bitmap[0]-1;   // counter will increase before executing next loop, therefore -1
          }
-      }
-    else if(G_test_array[test_index]->test_frames[i]->type == MATCH_LOOP)
+       }
+     else if(G_test_array[test_index]->test_frames[i]->type == MATCH_LOOP)
       {
+       //SEGGER_RTT_printf(0," test data gen: frame %d is MATCH_LOOP\n",i);
        if(loops > 256) break;
        if(loops >= G_test_array[test_index]->test_frames[i]->bank_bitmap[1])
          {
+          //SEGGER_RTT_printf(0," test data gen: matched MATCH_LOOP counter, continue to next frame\n");
           loops = 0;
           continue;
          }
@@ -414,10 +363,12 @@ void cli_run_test(int argc, char** argv) {
          {
           i = G_test_array[test_index]->test_frames[i]->bank_bitmap[0]-1;
           loops++;
+          //SEGGER_RTT_printf(0," test data gen: MATCH_LOOP counter, loop: %s , not matched, continue looping to frame %d\n",loops-1,G_test_array[test_index]->test_frames[i]->bank_bitmap[0]-1);
          }
-      }
+       }
      else // regular frame with bank bitmaps
       {
+        //SEGGER_RTT_printf(0," test data gen: frame %d is regular frame with bitmaps - generating cache data\n",i);
         G_test_array[test_index]->test_states[G_test_array[test_index]->iterations_done][0] = i;
         cache_test_frame(G_test_array[test_index]->io_settings,G_test_array[test_index]->test_frames[i],G_test_array[test_index]->test_states[G_test_array[test_index]->iterations_done],G_test_array[test_index]->counters,G_test_array[test_index]->iterations_done);
         G_test_array[test_index]->iterations_done++;
@@ -431,19 +382,22 @@ void cli_run_test(int argc, char** argv) {
        }
     }
 
+    //SEGGER_RTT_printf(0,"test data gen: generation of test data finished\n");
+
     if(!state_overflow)
      {
-
-      vcom_printf("* enabling banks...\r\n");
+ 
+      vcom_cprintf("\e[0;36m*\e[0m enabling banks...\n\r","* enabling banks...\n\r");
+      
       for(uint8_t i = 1; i < 5; i++)
         set_io_bank(i,"enable");
 
-      vcom_printf("* enabling DUT power...\r\n");
+      vcom_cprintf("\e[0;36m*\e[0m enabling DUT power...\n\r","* enabling DUT power...\n\r");
       set_dut_power("enable");
 
       delayMS(100);
 
-      vcom_printf("* running test...\r\n");
+      vcom_cprintf("\e[0;36m*\e[0m running test...\n\r","* running test...\n\r");
 
       uint8_t ctr = 0;
 
@@ -451,18 +405,23 @@ void cli_run_test(int argc, char** argv) {
 
       for(uint16_t k = 0; k < G_test_array[test_index]->iterations_done; k++)
         {
-
+         
+         //SEGGER_RTT_printf(0,"run test: iter %d\n",k);  
          ctr = 0;
-         while(write_banks[ctr++] != 0x0)
+         while(write_banks[ctr] != 0x0)
           {
-           set_level_bank(write_banks[ctr-1],G_output_cache[k][write_banks[ctr-1]]);
-           G_test_array[test_index]->test_states[k][write_banks[ctr-1]] = G_output_cache[k][write_banks[ctr-1]];
+           set_level_bank(write_banks[ctr],G_output_cache[k][write_banks[ctr]]);
+           G_test_array[test_index]->test_states[k][write_banks[ctr]] = G_output_cache[k][write_banks[ctr]];
+           //SEGGER_RTT_printf(0," run test: write %X to bank %d \n",G_output_cache[k][write_banks[ctr]],write_banks[ctr]);
+           ctr++;
           }
 
          ctr = 0;
-         while(read_banks[ctr++] != 0x0)
+         while(read_banks[ctr] != 0x0)
           {
-           G_test_array[test_index]->test_states[k][read_banks[ctr-1]] = read_level_bank(read_banks[ctr-1]);
+           G_test_array[test_index]->test_states[k][read_banks[ctr]] = read_level_bank(read_banks[ctr]);
+           //SEGGER_RTT_printf(0," run test: read %X from bank %d \n",G_test_array[test_index]->test_states[k][read_banks[ctr]],read_banks[ctr]);
+           ctr++;
           }
 
          //delayMS(G_test_array[test_index]->frame_interval_ms);
@@ -472,27 +431,28 @@ void cli_run_test(int argc, char** argv) {
 
       delayMS(100);
  
-      vcom_printf("* disabling DUT power...\r\n");
+      vcom_cprintf("\e[0;36m*\e[0m disabling DUT power...\n\r","* disabling DUT power...\n\r");
       set_dut_power("disable");
 
-      vcom_printf("* disabling banks...\r\n");
+      vcom_cprintf("\e[0;36m*\e[0m disabling banks...\n\r","* disabling banks...\n\r");
       for(uint8_t i = 1; i < 5; i++)
         set_io_bank(i,"disable");
 
-      vcom_printf("* checking test criteria...\r\n");
+      vcom_cprintf("\e[0;36m*\e[0m checking test criteria...\n\r","* checking test criteria...\n\r");
 
       ctr = 0;
-
-      while(G_test_array[test_index]->test_criteria[ctr] != NULL)
+   
+      while(ctr < MAX_CRITERIA)
        {
-        check_test_criteria(test_index,ctr);
+        if(G_test_array[test_index]->test_criteria[ctr] != NULL)
+          check_test_criteria(test_index,ctr);
         ctr++;
        }
 
       if(ctr == 0)
-        vcom_printf("* no criteria defined.\r\n");
+        vcom_cprintf("\e[0;36m*\e[0m no criteria defined.\n\r","* no criteria defined.\n\r");
         
-      vcom_printf("* test run finished (%d iterations).\r\n",G_test_array[test_index]->iterations_done);
+      vcom_cprintf("\e[0;36m*\e[0m test run finished (%d iterations).\n\r","* test run finished (%d iterations).\n\r",G_test_array[test_index]->iterations_done);
 
      }
  
@@ -563,32 +523,73 @@ void cli_show_test_frame(int argc, char** argv) {
 }
 
 
+void dealloc_test(test_data_t **test)
+ {
+    for(uint8_t i = 0; i < MAX_FRAMES; i++) {
+      if((*test)->test_frames[i] != NULL) 
+        free((*test)->test_frames[i]);
+     }
+
+    for(uint8_t i = 0; i < MAX_CRITERIA; i++) {
+      if((*test)->test_criteria[i] != NULL) 
+       {
+         if((*test)->test_criteria[i]->type == MATCH_LEXPR)
+            free((*test)->test_criteria[i]->expression);
+         free((*test)->test_criteria[i]);
+       }
+    }
+
+    free(*test);
+    *test = NULL;
+    G_cmd_cnt = 0;
+
+    for(uint8_t i = 0; i < MAX_TEST_CMDS; i++)
+       G_command_buffer[i][0] = '\0';
+ }
+
+void cli_clear_test(int argc, char** argv) {
+    if (argc != 1) {
+        vcom_printf("ERROR: invalid number of arguments for clear test <test_name>\n\r");
+        return;
+    }
+
+    char* test_name = argv[0];
+
+    for (int i = 0; i < MAX_TESTS; i++) {
+        if ((G_test_array[i] != NULL) && (strcmp(G_test_array[i]->test_name, test_name) == 0)) {
+            dealloc_test(&G_test_array[i]);
+            vcom_printf("test deleted from memory\r\n");
+            return;
+        }
+    }
+  }
 
 // Function to set test name
 void cli_set_test_name(int argc, char** argv) {
     if (argc != 1) {
-        printf("ERROR: invalid number of arguments for set test name.\n\r");
+        vcom_printf("ERROR: invalid number of arguments for set test name.\n\r");
         return;
     }
 
     char* new_test_name = argv[0];
 
     // Check if a test with the same name already exists
-    for (int i = 0; i < MAX_TESTS; ++i) {
-        if (G_test_array[i] != NULL && strcmp(G_test_array[i]->test_name, new_test_name) == 0) {
-            printf("ERROR: test with name '%s' already exists.\n\r", new_test_name);
-            return;
+    for(int i = 0; i < MAX_TESTS; i++) {
+        if (G_test_array[i] != NULL) 
+            if(strcmp(G_test_array[i]->test_name, new_test_name) == 0) {
+             vcom_printf("ERROR: test with name '%s' already exists.\n\r", new_test_name);
+             return;
+          }
+    }
+
+    // Clear test table, currently used SoC has to little memory to have more than one test active
+    for (int i = 0; i < MAX_TESTS; i++) {
+        if (G_test_array[i] != NULL) {
+          dealloc_test(&G_test_array[i]);
         }
     }
 
-    // Find the first available slot in the test_array
-    int available_slot = -1;
-    for (int i = 0; i < MAX_TESTS; ++i) {
-        if (G_test_array[i] == NULL) {
-            available_slot = i;
-            break;
-        }
-    }
+    int available_slot = 0;
 
     if (available_slot != -1) {
         // Allocate a new test_data_t structure
@@ -615,7 +616,7 @@ void cli_set_test_name(int argc, char** argv) {
         replace_or_append_cmd_buff("set test name ",argc,argv);
 
     } else {
-        printf("ERROR: maximum number of tests reached.\n\r");
+        vcom_printf("ERROR: maximum number of tests reached.\n\r");
     }
 }
 
@@ -943,7 +944,7 @@ void cli_set_test_frame(int argc, char** argv) {
             free(G_test_array[test_index]->test_frames[frame_number]);
             G_test_array[test_index]->frame_count--;
           }
-         free_argv(argc,&argv_copy);
+         free_argv(argc,argv_copy);
          return;
         }
      
@@ -955,7 +956,7 @@ void cli_set_test_frame(int argc, char** argv) {
            free(G_test_array[test_index]->test_frames[frame_number]);
            G_test_array[test_index]->frame_count--;
           }
-         free_argv(argc,&argv_copy);
+         free_argv(argc,argv_copy);
          return;
         }
      }
@@ -982,7 +983,7 @@ void cli_set_test_frame(int argc, char** argv) {
                   free(G_test_array[test_index]->test_frames[frame_number]);
                   G_test_array[test_index]->frame_count--;
                  }
-               free_argv(argc,&argv_copy);
+               free_argv(argc,argv_copy);
                return;
                }
 
@@ -1000,7 +1001,7 @@ void cli_set_test_frame(int argc, char** argv) {
       }
     vcom_printf("frame set for test %s, frame %u\n\r", test_name, frame_number);
     replace_or_append_cmd_buff("set test frame ",argc,argv_copy);
-    free_argv(argc,&argv_copy);
+    free_argv(argc,argv_copy);
    
 }
 
@@ -1213,6 +1214,8 @@ void cli_show_test_states(int argc, char** argv){
     }
 
    if(!aliased_only)
+    {
+     vcom_printf("                                BANK1      BANK2      BANK3      BANK4        B1   B2   B3   B4 \r\n");
      for(uint16_t i = 0; i < G_test_array[test_index]->iterations_done; i++)
       {
         uint8_to_binary_string(G_test_array[test_index]->test_states[i][1], bank_1);
@@ -1220,11 +1223,12 @@ void cli_show_test_states(int argc, char** argv){
         uint8_to_binary_string(G_test_array[test_index]->test_states[i][3], bank_3);
         uint8_to_binary_string(G_test_array[test_index]->test_states[i][4], bank_4);
         vcom_printf("iteration: %4d (frame: %3d): %s %s %s %s | ",i,G_test_array[test_index]->test_states[i][0],bank_1,bank_2,bank_3,bank_4);  
-        vcom_printf(" 0x%02X 0x%02X 0x%02X 0x%02X |\r\n",G_test_array[test_index]->test_states[i][1],
+        vcom_printf("0x%02X 0x%02X 0x%02X 0x%02X |\r\n",G_test_array[test_index]->test_states[i][1],
                                               G_test_array[test_index]->test_states[i][2],
                                               G_test_array[test_index]->test_states[i][3],
                                               G_test_array[test_index]->test_states[i][4]);
       }
+    }
    else
     {
      for(uint16_t i = 0; i < G_test_array[test_index]->iterations_done; i++)
@@ -1323,16 +1327,50 @@ void cli_show_test_name(int argc, char** argv) {
                vcom_printf("|");
                vcom_printf(" done: %s\n\r", G_test_array[test_index]->test_frames[i]->done ? "true" : "false");
              }
+           
         }
-    } else {
+
+      vcom_printf("\n\r--------- criteria ------------------\r\n");
+
+      for(uint8_t j = 0; j < MAX_CRITERIA; j++)
+        if(G_test_array[test_index]->test_criteria[j] != NULL)
+          {
+            vcom_printf("%d: ",j);
+           switch (G_test_array[test_index]->test_criteria[j]->type)
+             {
+               case MATCH_LEXPR:
+                   vcom_printf("match logical expression  \n\r");
+                   break;
+               case MATCH_MEXPR: 
+                   vcom_printf("match math expression  \n\r");
+                   break;
+               case MATCH_VALUE:
+                   vcom_printf("match value  \n\r");
+                   break;
+               case MATCH_COUNTER1:
+                   vcom_printf("match counter  \n\r");
+                   break;
+             }
+
+          }
+
+    } 
+    else {
         // Show a list of defined tests with general information
+        uint8_t crit_no = 0;
         for (int i = 0; i < MAX_TESTS; ++i) {
             if (G_test_array[i] != NULL) {
-                vcom_printf("test name: %s | frame count: %u | I/O settings: %u %u %u %u | frame interval (ms): %u\n\r",
+
+               for(uint8_t j = 0; j < MAX_CRITERIA; j++) 
+                 if(G_test_array[i]->test_criteria[j] != NULL)
+                    crit_no++;
+
+                vcom_printf("test name: %s | frame count: %u | I/O settings: %u %u %u %u | frame interval (ms): %u | criteria %d |\n\r",
                             G_test_array[i]->test_name, G_test_array[i]->frame_count,
                             G_test_array[i]->io_settings[1], G_test_array[i]->io_settings[2],
                             G_test_array[i]->io_settings[3], G_test_array[i]->io_settings[4],
-                            G_test_array[i]->frame_interval_ms);
+                            G_test_array[i]->frame_interval_ms, crit_no);
+                              
             }
         }
     }

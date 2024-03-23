@@ -22,7 +22,7 @@
 /**
  * What is the maximum number of arguments we reserve space for
  */
-#define EMBEDDED_CLI_MAX_ARGC 16
+#define EMBEDDED_CLI_MAX_ARGC 24
 #endif
 
 #ifndef EMBEDDED_CLI_MAX_PROMPT_LEN

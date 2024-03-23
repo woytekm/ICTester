@@ -173,6 +173,7 @@ int main(void)
 
 	StopWatch_Init();
 
+        //SEGGER_RTT_ConfigUpBuffer(0, NULL, NULL, 0, SEGGER_RTT_MODE_BLOCK_IF_FIFO_FULL);
         SEGGER_RTT_printf(0,"SystemCoreClock: %d \n",SystemCoreClock);
 
 	/* enable clocks and pinmux */

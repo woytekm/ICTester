@@ -21,6 +21,161 @@ bool is_logic_oper(char *token)
  }
 
 
+bool is_lexpr_oper(char *token)
+ {
+   if((strcmp(token,"&&") == 0) ||
+      (strcmp(token,"||") == 0))
+       return true;
+   return false;
+ }
+
+
+pin_set_t *parse_pin_set(char *in_str, uint8_t tn, uint8_t cn)
+ {
+  uint8_t pin_ids[16],i = 0,j = 0;
+  char token[8] = {'\0'};
+  char *cursor;
+  pin_set_t *pin_set;
+
+  //vcom_printf("parse_pin_set\r\n");
+
+  memset(&pin_ids,255,sizeof(pin_ids)); 
+  cursor = in_str;
+
+  if((cursor[0] != '[') && (cursor[strlen(in_str)-1] != ']'))
+    return NULL;
+
+  cursor++; // skip leading '['
+
+  while(*cursor != '\0') 
+   {
+    if((*cursor != ',')&&(*cursor != ']'))
+     {
+      token[i++] = *cursor; 
+      //vcom_printf(" token add: %c\r\n",*cursor);
+     }
+    else
+     {
+       //vcom_printf(" end token\r\n");
+       token[i] = '\0';
+       //vcom_printf(" token is: %s\r\n",token);
+       pin_ids[j++] = alias_to_pin_id(token,G_test_array[tn]->pin_aliases);
+       if(pin_ids[j-1] == 255) // failed to parse pin alias
+         return NULL;
+       i = 0;
+       memset(&token,0x0,sizeof(token));
+     }
+    cursor++;
+   }
+  
+  pin_set = malloc(sizeof(pin_set_t));
+  memcpy(pin_set->pin_ids,&pin_ids,sizeof(pin_ids));
+  pin_set->next = NULL;
+
+  //vcom_printf(" return %X\r\n",pin_set);
+  return pin_set;
+  
+ }
+
+
+bool parse_mexpr(char *str,uint8_t tn, uint8_t cn)
+ {
+    char token[32];
+    char chr = 0x0;
+    char *expr_ls, *match_mexpr_str;
+    char *equal_sign = strchr(str, '=');
+    pin_set_t *pin_set = NULL,*prev_pin_set;
+    bool in_token = false;
+
+    uint8_t j = 0, i = 0;
+
+    G_test_array[tn]->test_criteria[cn]->expression  = malloc(MAX_EXPR_LEN);
+    G_test_array[tn]->test_criteria[cn]->pin_sets = NULL;
+
+    if (equal_sign != NULL) {
+         *equal_sign = '\0';
+         expr_ls = str;
+         match_mexpr_str = equal_sign+1;
+
+         prev_pin_set = G_test_array[tn]->test_criteria[cn]->pin_sets = parse_pin_set(expr_ls,tn,cn);  // parse left side     
+
+         if(prev_pin_set == NULL)
+           goto free_and_return;
+
+         while(*match_mexpr_str != '\0')
+          {
+           chr = *match_mexpr_str;
+
+           if(chr == '[')
+             {
+               i = 0;
+               token[i++] = chr;
+               in_token = true; 
+               //vcom_printf("start token [\r\n");
+               match_mexpr_str++;
+               continue;
+             }
+           else if(chr == ']')
+             {
+               //vcom_printf("end token ]\r\n");
+               token[i++] = chr;
+               prev_pin_set->next = parse_pin_set(token,tn,cn);
+               if(prev_pin_set->next == NULL)
+                 break;
+               prev_pin_set = prev_pin_set->next;
+               memset(&token,0x0,sizeof(token));  
+               G_test_array[tn]->test_criteria[cn]->expression[j++] = '%';
+               G_test_array[tn]->test_criteria[cn]->expression[j++] = 'd';
+               in_token = false;
+             }
+           else if(in_token)
+             {
+              //vcom_printf("in token %c\r\n",chr);
+              token[i++] = chr; 
+             }
+           else if(chr == ' ')
+             {}
+           else
+            {
+              //vcom_printf("any other char: %c %c\r\n",chr);
+              G_test_array[tn]->test_criteria[cn]->expression[j++] = chr;
+            }
+           match_mexpr_str++; 
+          }
+
+         if(!in_token)
+          {
+            G_test_array[tn]->test_criteria[cn]->expression[j] = 0x0;
+            //vcom_printf("parsed mexpr to: %s\n\r", G_test_array[tn]->test_criteria[cn]->expression);           
+            pin_set = G_test_array[tn]->test_criteria[cn]->pin_sets;
+            while(pin_set != NULL)
+              {
+               //vcom_printf("pin set \r\n");
+               pin_set = pin_set->next;
+              }
+            return true;
+          }
+    }
+ 
+    free_and_return:
+ 
+    if(G_test_array[tn]->test_criteria[cn]->pin_sets != NULL)
+      {
+        prev_pin_set = G_test_array[tn]->test_criteria[cn]->pin_sets;
+        while(pin_set != NULL)
+          {
+            pin_set = prev_pin_set->next;
+            free(prev_pin_set);
+            prev_pin_set = pin_set;
+          }
+      }
+    free(G_test_array[tn]->test_criteria[cn]->expression); 
+
+    return false;
+   
+ }
+
+
 bool parse_match_value_expression(char *str,uint8_t tn, uint8_t cn)
  {
     char token[8];
@@ -73,7 +228,6 @@ bool parse_match_value_expression(char *str,uint8_t tn, uint8_t cn)
      }
 
     return false;
-
  }
 
 
@@ -112,7 +266,7 @@ bool parse_counter_pins(char *str,uint8_t tn, uint8_t cn)
  }
 
 
-bool parse_logic_expression(char *str, char *expr, uint8_t tn, uint8_t cn) {
+bool parse_lexpr(char *str, char **expr, uint8_t tn, uint8_t cn) {
 
     char tmp_str[MAX_EXPR_LEN];
     char token[8];
@@ -124,12 +278,14 @@ bool parse_logic_expression(char *str, char *expr, uint8_t tn, uint8_t cn) {
     //bool token_end = false;
     uint8_t i = 0,j = 0, ip = 0, k = 0;
 
-    if (equal_sign != NULL) {  
+    //vcom_printf(" parse lexpr, will parse: %s \r\n",str);
+
+    if (equal_sign != NULL) {
          *equal_sign = '\0';
          output_pin = str;
          expr_rs = equal_sign+1;
 
-         G_test_array[tn]->test_criteria[cn]->output_pin_id = alias_to_pin_id(output_pin,G_test_array[tn]->pin_aliases); 
+         G_test_array[tn]->test_criteria[cn]->output_pin_id = alias_to_pin_id(output_pin,G_test_array[tn]->pin_aliases);
 
          if(G_test_array[tn]->test_criteria[cn]->output_pin_id == 255)
            return false;
@@ -145,8 +301,8 @@ bool parse_logic_expression(char *str, char *expr, uint8_t tn, uint8_t cn) {
             //vcom_printf(" next char: %c \r\n",chr);
 
             if((chr == '!')||(chr == '('))
-               tmp_str[i++] = chr;  
-            else if(chr == '_')               // reached end of token, previous char had to be last char of the token
+               tmp_str[i++] = chr;
+            else if(chr == ' ')               // reached end of token, previous char had to be last char of the token
              {
               if(tmp_str[i-1] == ')')
                 tmp_str[i++] = ' ';
@@ -155,7 +311,7 @@ bool parse_logic_expression(char *str, char *expr, uint8_t tn, uint8_t cn) {
                 //token_end = true;
                 token[j] = 0x0;
                 //vcom_printf(" found token: %s \r\n",token);
-                if(is_logic_oper(token))        // logic operator
+                if(is_lexpr_oper(token))        // logic operator
                  {
                   //vcom_printf(" logic oper\r\n");
                   k = 0;
@@ -175,8 +331,8 @@ bool parse_logic_expression(char *str, char *expr, uint8_t tn, uint8_t cn) {
                   tmp_str[i++] = '%';
                   tmp_str[i++] = 'd';
                   tmp_str[i++] = ' ';
-                  j = 0; 
-                 }             
+                  j = 0;
+                 }
                }
              }
             else if(chr == ')')               // previous char could be either ')' or last char of the token
@@ -188,7 +344,7 @@ bool parse_logic_expression(char *str, char *expr, uint8_t tn, uint8_t cn) {
                   //token_end = true;
                   token[j] = 0x0;
                   //vcom_printf(" found token: %s \r\n",token);
-                  if(is_logic_oper(token))    // logic operator
+                  if(is_lexpr_oper(token))    // logic operator
                    {
                     //vcom_printf(" logic oper\r\n");
                     k = 0;
@@ -222,9 +378,8 @@ bool parse_logic_expression(char *str, char *expr, uint8_t tn, uint8_t cn) {
 
          tmp_str[i] = 0x0;
 
-         G_test_array[tn]->test_criteria[cn]->logic_expression = malloc(strlen(tmp_str)+1);
-         strcpy(G_test_array[tn]->test_criteria[cn]->logic_expression,tmp_str);
-
+         *expr = malloc(strlen(tmp_str)+1);
+         strcpy(*expr,tmp_str);
          return true;
      }
     else
@@ -241,9 +396,9 @@ bool parse_logic_expression(char *str, char *expr, uint8_t tn, uint8_t cn) {
 
 void cli_set_test_criteria(int argc, char** argv) {
     if (argc < 3) {
-        vcom_printf("set test criteria <test_name> <criteria_number up to 8> type (expr|val|ctr) <expr> from-frame <frame> to-frame <frame> \r\n");
-        vcom_printf("(white spaces in logic expression <expr> should be replaced with \'_\')\r\n");
-        vcom_printf("<expr> example: Y1=!((A1_AND_B1_AND_C1)_OR_(D1_AND_E1_AND_F1)) \r\n");
+        vcom_printf("set test criteria <test_name> <criteria_number up to 8> <type: lexpr|mexpr|val|ctr> <expr> from-frame <frame> to-frame <frame> \r\n");
+        vcom_printf("lexpr example: Y1=!((A1 && B1 && C1) || (D1 && E1 && F1)) \r\n");
+        vcom_printf("mexpr example: [F0,F1,F2,F3]=[A0,A1,A2,A3]+[B0,B1,B2,B3]  WARNING: values of pin aliases starting with '~' will be inverted during evaluation of expression\r\n");
         return;
     }
 
@@ -303,47 +458,57 @@ void cli_set_test_criteria(int argc, char** argv) {
         case MATCH_LEXPR: // logic expr
                {
                  G_test_array[ti]->test_criteria[ci]->type = MATCH_LEXPR;
-                 if((argc != 8)&&(argc != 4))
+                 char expr[MAX_EXPR_LEN];
+                 expr[0] = '\0';
+                 for(uint8_t i=3; i < argc; i++)
                    {
-                     vcom_printf("ERROR: invalid number of parameters for set test criteria expr (%d)\r\n",argc);
-                     goto free_and_return;
+                     if(strcmp("from-frame", argv[i]) == 0)
+                      {
+                       if(argc > i)
+                        {
+                         G_test_array[ti]->test_criteria[ci]->from_frame = atoi(argv[i+1]);
+                         i++;
+                        }
+                       else
+                        {
+                          vcom_printf("ERROR: malformed frame parameters.\r\n");
+                          goto free_and_return;
+                        }
+                      }
+                     else if(strcmp("to-frame", argv[i]) == 0)
+                      {
+                       if(argc > i)
+                        { 
+                         G_test_array[ti]->test_criteria[ci]->to_frame = atoi(argv[i+1]);
+                         i++;
+                        }
+                       else
+                        {
+                          vcom_printf("ERROR: malformed frame parameters.\r\n");
+                          goto free_and_return;
+                        }
+                      }
+                     else
+                      {
+                        strcat(expr,argv[i]);
+                        strcat(expr," ");
+                      }
                    }
-                 else 
-                  {
-                   if(!new_criteria)
-                     free(G_test_array[ti]->test_criteria[ci]->logic_expression);
-                   if(!parse_logic_expression(argv[3],G_test_array[ti]->test_criteria[ci]->logic_expression,ti,ci))
+                
+                 if(!new_criteria)
+                   free(G_test_array[ti]->test_criteria[ci]->expression);
+                 if(!parse_lexpr(expr,&G_test_array[ti]->test_criteria[ci]->expression,ti,ci))
                     {
-                      vcom_printf("ERROR: failed to parse logic expression: %s \r\n", argv[3]);
+                      vcom_printf("ERROR: failed to parse logic expression: %s \r\n", expr);
                       vcom_printf("  - check if pin aliases are valid\r\n");
                       vcom_printf("  - check if expression is not longer than %d chars\r\n",MAX_EXPR_LEN);
-                      vcom_printf("  - there can be no white spaces in logic expr (replace with '_')\r\n");
-                      vcom_printf("  example: Y1=!((A1_AND_B1_AND_C1)_OR_(D1_AND_E1_AND_F1)) \r\n");
+                      vcom_printf("  example: Y1=!((A1 && B1 && C1) || (D1 && E1 && F1)) \r\n");
                       goto free_and_return;
                     }
                    else
                     {
-                     vcom_printf("logic expression saved as: %s\r\n", G_test_array[ti]->test_criteria[ci]->logic_expression);
+                     vcom_printf("logic expression saved as: %s\r\n", G_test_array[ti]->test_criteria[ci]->expression);
                     }
-                  }
-                 if(argc == 8)
-                  {
-                   if(strcmp("from-frame", argv[4]) == 0) 
-                     G_test_array[ti]->test_criteria[ci]->from_frame = atoi(argv[5]);
-                   else
-                   {
-                     vcom_printf("ERROR: malformed frame range parameters \r\n");
-                     goto free_and_return;
-                   }
-
-                   if(strcmp("to-frame", argv[6]) == 0)
-                     G_test_array[ti]->test_criteria[ci]->from_frame = atoi(argv[7]);
-                   else
-                   {
-                     vcom_printf("ERROR: malformed frame range parameters \r\n");
-                     goto free_and_return;
-                   } 
-                 }
 
                }
                break;
@@ -402,6 +567,79 @@ void cli_set_test_criteria(int argc, char** argv) {
                     }
                }
                break;
+
+        case MATCH_MEXPR: // math
+               {
+                 G_test_array[ti]->test_criteria[ci]->type = MATCH_MEXPR;
+                 char expr[MAX_EXPR_LEN];
+                 expr[0] = '\0';
+                 for(uint8_t i=3; i < argc; i++)
+                   {
+                     if(strcmp("from-frame", argv[i]) == 0)
+                      {
+                       if(argc > i)
+                        {
+                         G_test_array[ti]->test_criteria[ci]->from_frame = atoi(argv[i+1]);
+                         i++;
+                        }
+                       else
+                        {
+                          vcom_printf("ERROR: malformed frame parameters.\r\n");
+                          goto free_and_return;
+                        }
+                      }
+                     else if(strcmp("to-frame", argv[i]) == 0)
+                      {
+                       if(argc > i)
+                        {
+                         G_test_array[ti]->test_criteria[ci]->to_frame = atoi(argv[i+1]);
+                         i++;
+                        }
+                       else
+                        {
+                          vcom_printf("ERROR: malformed frame parameters.\r\n");
+                          goto free_and_return;
+                        }
+                      }
+                     else
+                      {
+                        strcat(expr,argv[i]);
+                        strcat(expr," ");
+                      }
+                   }
+
+                 if(!new_criteria)
+                   {
+                     free(G_test_array[ti]->test_criteria[ci]->expression);
+                     if(G_test_array[ti]->test_criteria[ci]->pin_sets != NULL)
+                       {
+                        pin_set_t *pin_set = G_test_array[ti]->test_criteria[ci]->pin_sets;
+                        pin_set_t *prev_pin_set = G_test_array[ti]->test_criteria[ci]->pin_sets;
+                        while(pin_set != NULL)
+                        {
+                         pin_set = prev_pin_set->next;
+                         free(prev_pin_set);
+                         prev_pin_set = pin_set;
+                        }
+                       }
+                   }
+                 if(!parse_mexpr(expr,ti,ci))
+                    {
+                      vcom_printf("ERROR: failed to parse math expression: %s \r\n", expr);
+                      vcom_printf("  - check if pin aliases are valid\r\n");
+                      vcom_printf("  - check if expression is not longer than %d chars\r\n",MAX_EXPR_LEN);
+                      vcom_printf("  example: [C1,C2,C3,C4,C5] = [A1,A2,A3,A4] + [B1,B2,B3,B4] \r\n");
+                      goto free_and_return;
+                    }
+                   else
+                    {
+                     vcom_printf("math expression saved as: %s\r\n", G_test_array[ti]->test_criteria[ci]->expression);
+                    }
+
+               }
+               break;
+
+
         default:
                {
                 vcom_printf("ERROR: invalid criteria type\r\n");
@@ -411,13 +649,13 @@ void cli_set_test_criteria(int argc, char** argv) {
     }
 
   replace_or_append_cmd_buff("set test criteria ",argc,argv_copy);
-  free_argv(argc,&argv_copy);
+  free_argv(argc,argv_copy);
   return;
 
   free_and_return:
    if(new_criteria)  
      free(G_test_array[ti]->test_criteria[ci]);
-   free_argv(argc,&argv_copy);
+   free_argv(argc,argv_copy);
    return;
 
  }

@@ -7,63 +7,10 @@
 #include "test.h"
 #include "gpio.h"
 #include "gpio_pin.h"
+#include "ceval/ceval.h"
 
 
-
-bool math_eval(const char *expression, uint8_t result) {
-    char op;
-    uint8_t num1, num2;
-    sscanf(expression, "%hhu %c %hhu", &num1, &op, &num2);
-
-    switch (op) {
-        case '+':
-            return num1 + num2 == result;
-        case '-':
-            return num1 - num2 == result;
-        case '*':
-            return num1 * num2 == result;
-        case '/':
-            if (num2 != 0) {
-                return num1 / num2 == result;
-            }
-            else {
-                return false;
-            }
-        default:
-            return false;
-    }
-}
-
-
-char *logic_eval( char *expr, uint8_t *res ){
-  enum { LEFT, OP1, MID, OP2, RIGHT } state = LEFT;
-  enum { AND, OR, XOR } op = AND;
-  int mid=0, NEG=0;
-  uint8_t tmp = 0;
-
-  for( ; ; expr++, state++, NEG=0 ){
-    for( ;; expr++ )
-         if( *expr == '!'     ) NEG = !NEG;
-         else if( *expr != ' '     ) break;
-
-    if( *expr == '0'     ){ tmp  =  NEG; }
-    else if( *expr == '1'     ){ tmp  = !NEG; }
-    else if( *expr == 'A'     ){ op   = AND; expr+=2; }
-    else if( *expr == '&'     ){ op   = AND; expr+=1; }
-    else if( *expr == 'O'     ){ op   = OR;  expr+=1; }
-    else if( *expr == '|'     ){ op   = OR;  expr+=1; }
-    else if( *expr == '('     ){ expr = logic_eval( expr+1, &tmp ); if(NEG) tmp=!tmp; }
-    else if( *expr == '\0' ||
-            *expr == ')'     ){ if(state == OP2) *res |= mid; return expr; }
-
-    if( state == LEFT               ){ *res  = tmp;               }
-    else if( state == MID   && op == OR  ){  mid  = tmp;               }
-    else if( state == MID   && op == AND ){ *res &= tmp; state = LEFT; }
-    else if( state == OP2   && op == OR  ){ *res |= mid; state = OP1;  }
-    else if( state == RIGHT              ){  mid &= tmp; state = MID;  }
-  }
-}
-
+// get pin level from state frame by pin ID
 uint8_t get_plfsa(uint8_t pin_id,uint8_t state[5])
  {
    uint8_t pin_level;
@@ -79,6 +26,8 @@ uint8_t get_plfsa(uint8_t pin_id,uint8_t state[5])
    else return 0;
  }
 
+
+// get pin level from state frame by pin alias
 uint8_t get_aplfsa(char *pin_alias,char pin_aliases[48][5],uint8_t state[5])
  {
    uint8_t pin_level;
@@ -124,7 +73,85 @@ bool check_test_criteria(uint8_t tn, uint8_t cn)
   switch (G_test_array[tn]->test_criteria[cn]->type)
    {
 
-        case MATCH_LEXPR: // expr
+        #define MAX_EXPR_VALS 17
+
+        case MATCH_MEXPR: // math expression
+               {
+                uint16_t values[MAX_EXPR_VALS];
+                uint8_t j = 0, k = 0, bitval;
+                pin_set_t *pin_set;
+                int16_t result_int16_t;
+                uint16_t result = 0, result_bits = 0;
+
+                if(G_test_array[tn]->test_criteria[cn]->to_frame != 0)
+                     to_frame = G_test_array[tn]->test_criteria[cn]->to_frame;
+                else
+                     to_frame = G_test_array[tn]->iterations_done-1;
+
+                // get values from pins in state frame
+                for(i = G_test_array[tn]->test_criteria[cn]->from_frame; i<= to_frame; i++)
+                 {
+
+                  memset(&values,0,sizeof(values));
+
+                  pin_set = G_test_array[tn]->test_criteria[cn]->pin_sets;
+
+                  if(pin_set == NULL)
+                    return false;
+
+                  j = result_bits = 0;
+                  while( (pin_set->pin_ids[j] != 0xFF) && (j < MAX_VAL_BITS) )  // count bits in result value
+                   {
+                    result_bits++;
+                    j++;
+                   }
+
+                  while(pin_set != NULL)  // assemble all values from bits
+                   {    
+                    j = 0;
+                    while( (pin_set->pin_ids[j] != 0xFF) && (j < MAX_VAL_BITS) )
+                      {
+                        bitval = get_plfsa(pin_set->pin_ids[j],G_test_array[tn]->test_states[i]);
+                        if(G_test_array[tn]->pin_aliases[pin_set->pin_ids[j]][0] == '~')
+                         {
+                          if(bitval == 1) bitval = 0;
+                          else bitval = 1;
+                         }
+
+                        values[k] |= (bitval << j);
+                        j++;
+                      }
+                    k++;
+                    pin_set = pin_set->next;
+                   }
+
+                  // calculate expression value (values[1] -> max values), values[0] is output value to match (first pin set in criteria)
+                  sprintf(expr,G_test_array[tn]->test_criteria[cn]->expression,values[1],values[2],values[3],values[4],values[5],values[6],
+                                                                              values[7],values[8],values[9],values[10],values[11],values[12],
+                                                                              values[13],values[14],values[15],values[16]);     // this statically depends on MAX_EXPR_VALS length being more than 17 
+                  result_int16_t = ceval_result(expr);
+                  result = (uint16_t)result_int16_t;
+                  result = result & (uint16_t)(pow(2,result_bits)-1);  // clear unnecessary bits from result
+
+                  if(result != values[0])
+                      {
+                       vcom_cprintf("\e[0;31m    - test criteria %d failed at state frame %d\r\n\e[0m","    - test criteria %d failed at state frame %d\r\n",cn,i);
+                       vcom_printf("       state frame: %d\r\n",i);
+                       vcom_printf("       value is 0x%X, and should be 0x%X\r\n",values[0],result);
+                       led_signal_test_fail();
+                       return false;
+                      }
+                  k = 0;
+                 }
+
+                vcom_cprintf("\e[0;32m    + test criteria %d passed\r\n\e[0m","    + test criteria %d passed\r\n",cn);
+                led_signal_test_ok();
+                return true;
+               }
+               break;
+
+
+        case MATCH_LEXPR: // lexpr
                {
                  if(G_test_array[tn]->test_criteria[cn]->to_frame != 0)
                      to_frame = G_test_array[tn]->test_criteria[cn]->to_frame;
@@ -134,7 +161,7 @@ bool check_test_criteria(uint8_t tn, uint8_t cn)
                  for(i = G_test_array[tn]->test_criteria[cn]->from_frame; i<= to_frame; i++)
                   { 
                     logic_result = 255;
-                    sprintf(expr,G_test_array[tn]->test_criteria[cn]->logic_expression, 
+                    sprintf(expr,G_test_array[tn]->test_criteria[cn]->expression, 
                             get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[0],G_test_array[tn]->test_states[i]),   // read pin level for pin_ids[0] (id deciphered from entered expression), for state frame i
                             get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[1],G_test_array[tn]->test_states[i]),
                             get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[2],G_test_array[tn]->test_states[i]),
@@ -151,7 +178,8 @@ bool check_test_criteria(uint8_t tn, uint8_t cn)
                             get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[13],G_test_array[tn]->test_states[i]),
                             get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[14],G_test_array[tn]->test_states[i]),
                             get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[15],G_test_array[tn]->test_states[i]));
-                    logic_eval(expr,&logic_result);
+                    logic_result = (uint8_t)ceval_result(expr);
+
                     if(logic_result == 255)
                      {
                       vcom_printf("ERROR: logic expression evaluation failed\r\n");
@@ -159,7 +187,7 @@ bool check_test_criteria(uint8_t tn, uint8_t cn)
                      }
                     if(logic_result != get_plfsa(G_test_array[tn]->test_criteria[cn]->output_pin_id,G_test_array[tn]->test_states[i]))
                      {
-                      vcom_printf("    - test criteria %d failed at state frame %d\r\n",cn,i);
+                      vcom_cprintf("\e[0;31m    - test criteria %d failed at state frame %d\r\n\e[0m","    - test criteria %d failed at state frame %d\r\n",cn,i);
                       vcom_printf("       state frame: %d\r\n",i);
                       vcom_printf("       eval: %s to %d\r\n",expr,logic_result);
                       vcom_printf("       output pin id: %d : %d\r\n",G_test_array[tn]->test_criteria[cn]->output_pin_id,get_plfsa(G_test_array[tn]->test_criteria[cn]->output_pin_id,G_test_array[tn]->test_states[i]));
@@ -168,7 +196,7 @@ bool check_test_criteria(uint8_t tn, uint8_t cn)
                      }
        
                   }
-                 vcom_printf("    + test criteria %d passed\r\n",cn);
+                 vcom_cprintf("\e[0;32m    + test criteria %d passed\r\n\e[0m","    + test criteria %d passed\r\n",cn);
                  led_signal_test_ok();
                  return true;
                }
@@ -194,7 +222,7 @@ bool check_test_criteria(uint8_t tn, uint8_t cn)
                     }
                   if(value != G_test_array[tn]->test_criteria[cn]->value)
                       {
-                      vcom_printf("    - test criteria %d failed at state frame %d\r\n",cn,i);
+                      vcom_cprintf("\e[0;31m    - test criteria %d failed at state frame %d\r\n\e[0m","    - test criteria %d failed at state frame %d\r\n",cn,i);
                       vcom_printf("       state frame: %d\r\n",i);
                       vcom_printf("       value is 0x%X, and should be 0x%X\r\n",value,G_test_array[tn]->test_criteria[cn]->value);
                       led_signal_test_fail();
@@ -202,7 +230,7 @@ bool check_test_criteria(uint8_t tn, uint8_t cn)
                      }
                  }
 
-                vcom_printf("    + test criteria %d passed\r\n",cn);
+                vcom_cprintf("\e[0;32m    + test criteria %d passed\r\n\e[0m","    + test criteria %d passed\r\n",cn);
                 led_signal_test_ok();
                 return true;
                }
@@ -233,7 +261,7 @@ bool check_test_criteria(uint8_t tn, uint8_t cn)
                       if(value>0) // if value == 0 then there was a counter overflow
                        if(value != (value_prev-1))
                         {
-                            vcom_printf("    - test criteria %d failed at state frame %d\r\n",cn,i);
+                            vcom_cprintf("\e[0;31m    - test criteria %d failed at state frame %d\r\n\e[0m","    - test criteria %d failed at state frame %d\r\n",cn,i);
                             vcom_printf("       state frame: %d\r\n",i);
                             vcom_printf("       current counter val: 0x%X, prev counter val: 0x%X \r\n",value,value_prev);
                             led_signal_test_fail();
@@ -244,15 +272,12 @@ bool check_test_criteria(uint8_t tn, uint8_t cn)
                   first_pass = false;
                  }
 
-                vcom_printf("    + test criteria %d passed\r\n",cn);
+                vcom_cprintf("\e[0;32m    + test criteria %d passed\r\n\e[0m","    + test criteria %d passed\r\n",cn);
                 led_signal_test_ok();
                 return true;
 
                }
                break;
-
-        case MATCH_MEXPR:
-               break; 
 
         default:
                {

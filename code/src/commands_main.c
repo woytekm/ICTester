@@ -27,7 +27,7 @@ void dispatch_cli_command(int cli_argc, char **cli_argv) {
 
     // Array of known top-level commands
     const char *top_level_commands[] = {"set","clear","show","run","help","hwinfo","reset",
-                                        "dir","cat","xxd","strings","rm","mv","mkdir","load","save"};
+                                        "dir","cat","xxd","strings","rm","mv","mkdir","load","save","join"};
 
     int i;
     int num_top_level_commands = sizeof(top_level_commands) / sizeof(top_level_commands[0]);
@@ -88,8 +88,19 @@ void dispatch_cli_command(int cli_argc, char **cli_argv) {
             break;
 
         case 1: // clear
-            // Handle 'clear' command if needed
-            vcom_printf( "clear command not implemented\n\r");
+            if (cli_argc < 2) {
+                vcom_printf( "usage: %s clear <subcommand>\n\r", cli_argv[0]);
+                return;
+            }
+
+            char *subcommand_clear = cli_argv[1];
+
+            if (strcmp(subcommand_clear, "test") == 0) {
+                cli_clear_test(cli_argc - 2, cli_argv + 2);
+            }
+            else {
+                vcom_printf( "unknown subcommand for 'clear': %s\n\r", subcommand_clear);
+            }
             break;
 
         case 2: // show
@@ -153,7 +164,8 @@ void dispatch_cli_command(int cli_argc, char **cli_argv) {
             break;
 
         case 6: // reset
-            vcom_printf( "resetting the system... %s\n\r");
+            vcom_printf("resetting the system... %s\n\r");
+            vcom_printf("\n\r");
             NVIC_SystemReset();
             break;
 
@@ -236,6 +248,15 @@ void dispatch_cli_command(int cli_argc, char **cli_argv) {
             usd_save_test_to_file(cli_argv[2],cli_argv[4]);
             break;
 
+        case 16: // join
+            if (cli_argc != 4)
+              {
+               vcom_printf( "usage: join <file 1> <file 2> <output file> - join even and odd ROM parts into one file\n\r");
+               break;
+              }
+            usd_join(cli_argv[1],cli_argv[2],cli_argv[3]);
+            break;
+
         default:
             // Unknown command
             vcom_printf( "unknown command: %s\n\r", command);
@@ -272,25 +293,33 @@ void display_help() {
     vcom_printf(" set clock state <enable|disable>: enable or disable clock output\n\r");
     vcom_printf("\r\ntest commands:\r\n");
     vcom_printf(" set test <name>: create new test\r\n");
+    vcom_printf(" clear test <name>: delete a test from memory\r\n");
     vcom_printf(" set test frame-interval <test_name> <ms>: set test frame interval to ms miliseconds\r\n");
     vcom_printf(" set test io-settings <test_name> <bank 1: I|O>  <bank 2: I|O>  <bank 3: I|O>  <bank 4: I|O>\r\n");
     vcom_printf(" set test frame <test_name> <number> <bitmap 1> <bitmap 2> <bitmap 3> <bitmap 4>\r\n");
-    vcom_printf(" set test criteria <test_name> <criteria number> lexpr <expr> from-frame <number> to-frame <number>\r\n");
-    vcom_printf("   lexpr example: Y1=!((A1_AND_B1_AND_C1)_OR_(D1_AND_E1_AND_F1)) \r\n");
+    vcom_printf(" show test <name> - show test configuration\r\n");
+    vcom_printf(" show test frame <test_name> <number> - show test frame\r\n");
+    vcom_printf(" show test states <test_name> - show bank states from test iterations\r\n");
+    vcom_printf(" run test <name> - start a test\n\r");
+    vcom_printf("\r\ntest criteria commands:\r\n");
+    vcom_printf(" \r\n");
+    vcom_printf(" set test criteria <test_name> <criteria number> lexpr <expr> from-frame <number> to-frame <number> - test logic expression against pin set\r\n");
+    vcom_printf("   lexpr example: Y1=!((A1 && B1 && C1) || (D1 && E1 && F1))\r\n");
     vcom_printf("   where Y1 = output pin alias used to check expression result\r\n");
     vcom_printf("         A1,B1,C1,D1,E1,F1 = input pin aliases used to calculate expression value\r\n");
-    vcom_printf(" set test criteria <test_name> <criteria number> mexpr <expr> from-frame <number> to-frame <number>\r\n");
-    vcom_printf("   mexpr example: B3=(B1+B2) \r\n");
-    vcom_printf("   where Y1 = output pin alias used to check expression result\r\n");
-    vcom_printf("         A1,B1,C1,D1,E1,F1 = input pin aliases used to calculate expression value\r\n");
+    vcom_printf(" \r\n");
+    vcom_printf(" set test criteria <test_name> <criteria number> mexpr <expr> from-frame <number> to-frame <number> - test math expression against bank set\r\n");
+    vcom_printf("   mexpr example: [Y5,Y4,Y3,Y2,Y1]=[A4,A3,A2,A1]+[B4,B3,B2,B1] \r\n");
+    vcom_printf("   where [Y5,Y4,Y3,Y2,Y1] = bits used to check expression result\r\n");
+    vcom_printf("         [A4,A3,A2,A1] =  bits of used to represent input value A\r\n");
+    vcom_printf("         [B4,B3,B2,B1] =  bits of used to represent input value B\r\n");
+    vcom_printf("         WARNING: values of pin aliases starting with '~' will be inverted during evaluation of expression (eg \"~A4\") \r\n");
+    vcom_printf(" \r\n");
     vcom_printf(" set test criteria <test_name> <criteria number> val <val pin aliases: \"(pin1,pin2,pin3,pin4,pin5)=0xA\"> from-frame <number> to-frame <number>\r\n");
     vcom_printf("   check if specified pins match bit value specified (from frame x to frame y)\r\n");
+    vcom_printf(" \r\n");
     vcom_printf(" set test criteria <test_name> <criteria number> ctr <counter pin aliases: \"(pin1,pin2,pin3,pin4,pin5)\"> from-frame <number> to-frame <number>\r\n");
     vcom_printf("   check if bit value of specified pins (in order) is a counter incrementing by one (from frame x to frame y)\r\n");
-    vcom_printf(" show test <name>\r\n");
-    vcom_printf(" show test frame <test_name> <number>\r\n");
-    vcom_printf(" show test states <test_name>\r\n");
-    vcom_printf(" run test <name>\n\r");
     vcom_printf("\r\nSRAM test commands:\r\n");
     vcom_printf(" set sram-test <addr-bits> <data-bits> ce oe we <loops> where ce=L|H , oe=L|H, we=L|H\r\n");
     vcom_printf(" show sram-test\r\n");
@@ -312,6 +341,7 @@ void display_help() {
     vcom_printf(" cat <path> - list file contents\n\r");
     vcom_printf(" xxd <path> - hex dump file contents\n\r");
     vcom_printf(" strings <path> - show ASCII strings in file contents\n\r");
+    vcom_printf(" join <file 1> <file 2> <output file> - join even and odd ROM parts into one file\n\r");
     vcom_printf(" rm <path> - delete a file\n\r");
     vcom_printf(" mv <path1> <path2> - rename a file\n\r");
     vcom_printf(" mkdir <path> - create directory\n\r");

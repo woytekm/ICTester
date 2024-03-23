@@ -16,6 +16,71 @@
 
 
 
+// Helper function to parse and convert bank bitmap from string to uint8_t
+uint8_t parse_bank_bitmap(char* bitmap_str) {
+    // Check if the string starts with "0b" or "0B"
+    if (bitmap_str[0] == '0' && (bitmap_str[1] == 'b' || bitmap_str[1] == 'B')) {
+        return strtol(bitmap_str + 2, NULL, 2);  // Convert binary string
+    } else {
+        return strtol(bitmap_str, NULL, 0);  // Automatically detect base (hex or decimal)
+    }
+}
+
+uint8_t parse_uint8_string(const char* bitmap_str) {
+    // Check if the string starts with "0b" or "0B"
+    if (bitmap_str[0] == '0' && (bitmap_str[1] == 'b' || bitmap_str[1] == 'B')) {
+        return strtol(bitmap_str + 2, NULL, 2);  // Convert binary string
+    } else {
+        return strtol(bitmap_str, NULL, 0);  // Automatically detect base (hex or decimal)
+    }
+}
+
+void uint8_to_binary_string(uint8_t value, char* binary_str) {
+    // Ensure the binary_str is large enough to store the binary representation
+    snprintf(binary_str, 10, "0b");
+
+    // Convert each bit to '0' or '1' and append to the string
+    for (int i = 7; i >= 0; --i) {
+        binary_str[2 + (7 - i)] = (value & (1 << i)) ? '1' : '0';
+    }
+
+    // Null-terminate the string
+    binary_str[10] = '\0';
+}
+
+
+// Sets specified bits (bit1 and bit2) in the given byte to the specified value
+void set_bits(uint8_t *byte, uint8_t bit1, uint8_t bit2, uint8_t value) {
+    if (bit1 > 7 || bit2 > 7 || bit1 > bit2 || value > 3) {
+        // Invalid bit positions or value
+        return;
+    }
+
+    // Calculate the mask to modify the specified bits
+    uint8_t mask = 0x0;
+    mask |= (1 << bit1);
+    mask |= (1 << bit2);
+    // Clear the specified bits
+    (*byte) &= ~mask;
+    // Set the specified bits to the new value
+    (*byte) |= (value << bit1);
+
+}
+
+uint8_t extract_bits(uint8_t byte, uint8_t bit1, uint8_t bit2) {
+    if (bit1 > 7 || bit2 > 7 || bit1 > bit2) {
+        // Invalid bit positions
+        return 0;
+    }
+
+    // Calculate the mask to extract the specified bits
+    uint8_t mask = ((1 << (bit2 - bit1 + 1)) - 1) << bit1;
+
+    // Use bit manipulation to extract the bits
+    return (byte & mask) >> bit1;
+}
+
+
 bool lh_to_bool(char c)
  {
    if(c == 'L')
@@ -165,22 +230,35 @@ void tokenize_string(char *input_string, uint8_t *argc, char ***argv) {
 }
 
 
-void free_argv(uint8_t argc, char ***argv) {
-    //vcom_printf("free pointer %X\r\n",*argv);
-    free(*argv);
+void free_argv(uint8_t argc, char **argv[]) {
+        free(argv);
 }
 
 
 char **duplicate_argv(uint8_t argc, char **argv) {
+  size_t strlen_sum;
+  char **argp;
+  char *data;
+  size_t len;
+  int i;
 
-    char **argv_copy = (char **)malloc(sizeof(char *) * argc);
+  strlen_sum = 0;
+  for (i = 0; i < argc; i++) strlen_sum += strlen(argv[i]) + 1;
 
-    for (uint8_t i = 0; i < argc; i++) {
-        argv_copy[i] = strdup(argv[i]);
-    }
+  argp = malloc(sizeof(char *) * (argc + 1) + strlen_sum);
+  if (!argp) return NULL;
+  data = (char *) argp + sizeof(char *) * (argc + 1);
 
-    return argv_copy;
-}
+  for (i = 0; i < argc; i++) {
+    argp[i] = data;
+    len = strlen(argv[i]) + 1;
+    memcpy(data, argv[i], len);
+    data += len;
+  }
+  argp[argc] = NULL;
+
+  return argp;
+ }
 
 
 // Courtesy of GPT 3.5
