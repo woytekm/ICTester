@@ -214,12 +214,9 @@ bool parse_match_value_expression(char *str,uint8_t tn, uint8_t cn)
              {
               token[j++] = chr;
              }
-
             expr_ls++;
           }
-
          return true;        
-
      }
     else
      {
@@ -266,143 +263,15 @@ bool parse_counter_pins(char *str,uint8_t tn, uint8_t cn)
  }
 
 
-bool parse_lexpr(char *str, char **expr, uint8_t tn, uint8_t cn) {
-
-    char tmp_str[MAX_EXPR_LEN];
-    char token[8];
-    char chr = 0x0;
-    char *output_pin;
-    char *expr_rs;
-
-    char *equal_sign = strchr(str, '=');
-    //bool token_end = false;
-    uint8_t i = 0,j = 0, ip = 0, k = 0;
-
-    //vcom_printf(" parse lexpr, will parse: %s \r\n",str);
-
-    if (equal_sign != NULL) {
-         *equal_sign = '\0';
-         output_pin = str;
-         expr_rs = equal_sign+1;
-
-         G_test_array[tn]->test_criteria[cn]->output_pin_id = alias_to_pin_id(output_pin,G_test_array[tn]->pin_aliases);
-
-         if(G_test_array[tn]->test_criteria[cn]->output_pin_id == 255)
-           return false;
-
-         if(strlen(expr_rs)>MAX_EXPR_LEN)
-           return false;
-
-         while(*expr_rs != 0x0)
-          {
-
-            chr = *expr_rs;
-
-            //vcom_printf(" next char: %c \r\n",chr);
-
-            if((chr == '!')||(chr == '('))
-               tmp_str[i++] = chr;
-            else if(chr == ' ')               // reached end of token, previous char had to be last char of the token
-             {
-              if(tmp_str[i-1] == ')')
-                tmp_str[i++] = ' ';
-              else
-               {
-                //token_end = true;
-                token[j] = 0x0;
-                //vcom_printf(" found token: %s \r\n",token);
-                if(is_lexpr_oper(token))        // logic operator
-                 {
-                  //vcom_printf(" logic oper\r\n");
-                  k = 0;
-                  while(token[k] != 0x0)
-                    tmp_str[i++] = token[k++];
-                  tmp_str[i++] = ' ';
-                  j = 0;
-                 }
-                else                            // pin id
-                 {
-                  uint8_t pin_id = alias_to_pin_id(token,G_test_array[tn]->pin_aliases);
-                  //vcom_printf(" pin id: %d \r\n",pin_id);
-                  if(pin_id == 255)
-                    return false;
-                  G_test_array[tn]->test_criteria[cn]->pin_ids[ip] = pin_id;
-                  ip++;
-                  tmp_str[i++] = '%';
-                  tmp_str[i++] = 'd';
-                  tmp_str[i++] = ' ';
-                  j = 0;
-                 }
-               }
-             }
-            else if(chr == ')')               // previous char could be either ')' or last char of the token
-             {
-               if(tmp_str[i-1] == ')')
-                 tmp_str[i++] = chr;
-               else
-                {
-                  //token_end = true;
-                  token[j] = 0x0;
-                  //vcom_printf(" found token: %s \r\n",token);
-                  if(is_lexpr_oper(token))    // logic operator
-                   {
-                    //vcom_printf(" logic oper\r\n");
-                    k = 0;
-                    while(token[k] != 0x0)
-                      tmp_str[i++] = token[k++];
-                    tmp_str[i++] = ')';
-                    j = 0;
-                   }
-                  else                        // pin id
-                   {
-                    uint8_t pin_id = alias_to_pin_id(token,G_test_array[tn]->pin_aliases);
-                    //vcom_printf(" pin id: %d \r\n",pin_id);
-                    if(pin_id == 255)
-                      return false;
-                    G_test_array[tn]->test_criteria[cn]->pin_ids[ip] = pin_id;
-                    ip++;
-                    tmp_str[i++] = '%';
-                    tmp_str[i++] = 'd';
-                    tmp_str[i++] = ')';
-                    j = 0;
-                   }
-                }
-             }
-            else
-             {
-              //token_end = false;
-              token[j++] = chr;
-             }
-            expr_rs++;
-          }
-
-         tmp_str[i] = 0x0;
-
-         *expr = malloc(strlen(tmp_str)+1);
-         strcpy(*expr,tmp_str);
-         return true;
-     }
-    else
-     {
-      vcom_printf("ERROR: cannot parse logic expression: %s\n\r", str);
-      return false;
-     }
-
-    return false;
-
- }
-
-
 
 void cli_set_test_criteria(int argc, char** argv) {
     if (argc < 3) {
-        vcom_printf("set test criteria <test_name> <criteria_number up to 8> <type: lexpr|mexpr|val|ctr> <expr> from-frame <frame> to-frame <frame> \r\n");
-        vcom_printf("lexpr example: Y1=!((A1 && B1 && C1) || (D1 && E1 && F1)) \r\n");
+        vcom_printf("set test criteria <test_name> <criteria_number up to 8> <type: mexpr|val|ctr> <expr> from-frame <frame> to-frame <frame> \r\n");
         vcom_printf("mexpr example: [F0,F1,F2,F3]=[A0,A1,A2,A3]+[B0,B1,B2,B3]  WARNING: values of pin aliases starting with '~' will be inverted during evaluation of expression\r\n");
         return;
     }
 
-    const char *criteria_type[] = {"lexpr", "val", "ctr", "mexpr"};
+    const char *criteria_type[] = {"val", "ctr", "mexpr"};
     char *test_name = argv[0];
     char *criteria_idx_str = argv[1];
     char *type = argv[2];
@@ -454,64 +323,6 @@ void cli_set_test_criteria(int argc, char** argv) {
     char **argv_copy = duplicate_argv(argc,argv);
 
     switch (i) {
-
-        case MATCH_LEXPR: // logic expr
-               {
-                 G_test_array[ti]->test_criteria[ci]->type = MATCH_LEXPR;
-                 char expr[MAX_EXPR_LEN];
-                 expr[0] = '\0';
-                 for(uint8_t i=3; i < argc; i++)
-                   {
-                     if(strcmp("from-frame", argv[i]) == 0)
-                      {
-                       if(argc > i)
-                        {
-                         G_test_array[ti]->test_criteria[ci]->from_frame = atoi(argv[i+1]);
-                         i++;
-                        }
-                       else
-                        {
-                          vcom_printf("ERROR: malformed frame parameters.\r\n");
-                          goto free_and_return;
-                        }
-                      }
-                     else if(strcmp("to-frame", argv[i]) == 0)
-                      {
-                       if(argc > i)
-                        { 
-                         G_test_array[ti]->test_criteria[ci]->to_frame = atoi(argv[i+1]);
-                         i++;
-                        }
-                       else
-                        {
-                          vcom_printf("ERROR: malformed frame parameters.\r\n");
-                          goto free_and_return;
-                        }
-                      }
-                     else
-                      {
-                        strcat(expr,argv[i]);
-                        strcat(expr," ");
-                      }
-                   }
-                
-                 if(!new_criteria)
-                   free(G_test_array[ti]->test_criteria[ci]->expression);
-                 if(!parse_lexpr(expr,&G_test_array[ti]->test_criteria[ci]->expression,ti,ci))
-                    {
-                      vcom_printf("ERROR: failed to parse logic expression: %s \r\n", expr);
-                      vcom_printf("  - check if pin aliases are valid\r\n");
-                      vcom_printf("  - check if expression is not longer than %d chars\r\n",MAX_EXPR_LEN);
-                      vcom_printf("  example: Y1=!((A1 && B1 && C1) || (D1 && E1 && F1)) \r\n");
-                      goto free_and_return;
-                    }
-                   else
-                    {
-                     vcom_printf("logic expression saved as: %s\r\n", G_test_array[ti]->test_criteria[ci]->expression);
-                    }
-
-               }
-               break;
 
         case MATCH_VALUE: // val
                {

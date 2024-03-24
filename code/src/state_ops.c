@@ -53,8 +53,6 @@ bool check_test_criteria(uint8_t tn, uint8_t cn)
  {
 
   uint16_t i,to_frame;
-  uint8_t logic_result;
-  
   char expr[MAX_EXPR_LEN];
 
   if(G_test_array[tn] == NULL)
@@ -147,58 +145,6 @@ bool check_test_criteria(uint8_t tn, uint8_t cn)
                 vcom_cprintf("\e[0;32m    + test criteria %d passed\r\n\e[0m","    + test criteria %d passed\r\n",cn);
                 led_signal_test_ok();
                 return true;
-               }
-               break;
-
-
-        case MATCH_LEXPR: // lexpr
-               {
-                 if(G_test_array[tn]->test_criteria[cn]->to_frame != 0)
-                     to_frame = G_test_array[tn]->test_criteria[cn]->to_frame;
-                 else
-                     to_frame = G_test_array[tn]->iterations_done-1;
- 
-                 for(i = G_test_array[tn]->test_criteria[cn]->from_frame; i<= to_frame; i++)
-                  { 
-                    logic_result = 255;
-                    sprintf(expr,G_test_array[tn]->test_criteria[cn]->expression, 
-                            get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[0],G_test_array[tn]->test_states[i]),   // read pin level for pin_ids[0] (id deciphered from entered expression), for state frame i
-                            get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[1],G_test_array[tn]->test_states[i]),
-                            get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[2],G_test_array[tn]->test_states[i]),
-                            get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[3],G_test_array[tn]->test_states[i]),
-                            get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[4],G_test_array[tn]->test_states[i]),
-                            get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[5],G_test_array[tn]->test_states[i]),
-                            get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[6],G_test_array[tn]->test_states[i]),
-                            get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[7],G_test_array[tn]->test_states[i]),
-                            get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[8],G_test_array[tn]->test_states[i]),
-                            get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[9],G_test_array[tn]->test_states[i]),
-                            get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[10],G_test_array[tn]->test_states[i]),
-                            get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[11],G_test_array[tn]->test_states[i]),
-                            get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[12],G_test_array[tn]->test_states[i]),
-                            get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[13],G_test_array[tn]->test_states[i]),
-                            get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[14],G_test_array[tn]->test_states[i]),
-                            get_plfsa(G_test_array[tn]->test_criteria[cn]->pin_ids[15],G_test_array[tn]->test_states[i]));
-                    logic_result = (uint8_t)ceval_result(expr);
-
-                    if(logic_result == 255)
-                     {
-                      vcom_printf("ERROR: logic expression evaluation failed\r\n");
-                      return false;
-                     }
-                    if(logic_result != get_plfsa(G_test_array[tn]->test_criteria[cn]->output_pin_id,G_test_array[tn]->test_states[i]))
-                     {
-                      vcom_cprintf("\e[0;31m    - test criteria %d failed at state frame %d\r\n\e[0m","    - test criteria %d failed at state frame %d\r\n",cn,i);
-                      vcom_printf("       state frame: %d\r\n",i);
-                      vcom_printf("       eval: %s to %d\r\n",expr,logic_result);
-                      vcom_printf("       output pin id: %d : %d\r\n",G_test_array[tn]->test_criteria[cn]->output_pin_id,get_plfsa(G_test_array[tn]->test_criteria[cn]->output_pin_id,G_test_array[tn]->test_states[i]));
-                      led_signal_test_fail();
-                      return false;
-                     }
-       
-                  }
-                 vcom_cprintf("\e[0;32m    + test criteria %d passed\r\n\e[0m","    + test criteria %d passed\r\n",cn);
-                 led_signal_test_ok();
-                 return true;
                }
                break;
 

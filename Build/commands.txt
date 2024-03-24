@@ -1,6 +1,6 @@
 set test name 74LS161
 set test frame-interval 74LS161 1
-set test io-settings 74LS161 255 255 0 0
+set test io-settings 74LS161 I I O O
 set test pin-alias 74LS161 30=RST
 set test pin-alias 74LS161 31=CLK
 set test pin-alias 74LS161 32=ENT
@@ -29,7 +29,7 @@ set test criteria 74LS161 10 val (Q0,Q1,Q2,Q3,CARY)=0x1F from-frame 31 to-frame 
 
 set test name 74LS51
 set test frame-interval 74LS51 1
-set test io-settings 74LS51 255 255 0 0
+set test io-settings 74LS51 I I O O
 set test pin-alias 74LS51 20=Y1
 set test pin-alias 74LS51 21=Y2
 set test pin-alias 74LS51 30=A1
@@ -52,7 +52,7 @@ set test criteria 74LS51 2 val (Y1,Y2)=0x3 from-frame 16 to-frame 16
 
 set test name PALCE16V8
 set test frame-interval PALCE16V8 1
-set test io-settings PALCE16V8 255 255 0 0
+set test io-settings PALCE16V8 I I O O 
 set test pin-alias PALCE16V8 40=CLK
 set test pin-alias PALCE16V8 41=OE
 set test pin-alias PALCE16V8 30=I1
@@ -80,7 +80,7 @@ set test frame PALCE16V8 4 loop 2 until CTR1=0xFF
 
 
 set test name 74181_a_plus_b
-set test io-settings 74181_a_plus_b 0 0 255 0
+set test io-settings 74181_a_plus_b O O I O
 set test pin-alias 74181_a_plus_b 10=A0
 set test pin-alias 74181_a_plus_b 11=A1
 set test pin-alias 74181_a_plus_b 12=A2
@@ -112,7 +112,7 @@ set test criteria 74181_a_plus_b 1 mexpr [F0,F1,F2,F3,~Cn]=[A0,A1,A2,A3]+[B0,B1,
 
 
 set test name 74181_a_AND_b_minus_1
-set test io-settings 74181_a_AND_b_minus_1 0 0 255 0
+set test io-settings 74181_a_AND_b_minus_1 O O I O
 set test pin-alias 74181_a_AND_b_minus_1 10=A0
 set test pin-alias 74181_a_AND_b_minus_1 11=A1
 set test pin-alias 74181_a_AND_b_minus_1 12=A2
@@ -144,7 +144,7 @@ set test criteria 74181_a_AND_b_minus_1 1 mexpr [F0,F1,F2,F3]=(([A0,A1,A2,A3]&[B
 
 
 set test name 74181_a_plus_b
-set test io-settings 74181_a_plus_b 0 0 255 0
+set test io-settings 74181_a_plus_b O O I O
 set test pin-alias 74181_a_plus_b 10=A0
 set test pin-alias 74181_a_plus_b 11=A1
 set test pin-alias 74181_a_plus_b 12=A2
@@ -176,7 +176,7 @@ set test criteria 74181_a_plus_b 1 mexpr [F0,F1,F2,F3,~Cn]=[A0,A1,A2,A3]+[B0,B1,
 
 
 set test name 74181_a_OR_NOT_b
-set test io-settings 74181_a_OR_NOT_b 0 0 255 0
+set test io-settings 74181_a_OR_NOT_b O O I O
 set test pin-alias 74181_a_OR_NOT_b 10=A0
 set test pin-alias 74181_a_OR_NOT_b 11=A1
 set test pin-alias 74181_a_OR_NOT_b 12=A2
@@ -209,7 +209,7 @@ set test criteria 74181_a_OR_NOT_b 1 mexpr [F0,F1,F2,F3]=([A0,A1,A2,A3]|[~B0,~B1
 
 set test name speedtest
 set test frame-interval speedtest 1
-set test io-settings speedtest 0 0 0 0
+set test io-settings speedtest O O O O
 set test frame speedtest 0 0x0 0x0 0x0 0x0
 set test frame speedtest 1 0xFF 0x0 0x0 0x0
 set test frame speedtest 2 0x0 0x0 0x0 0x0

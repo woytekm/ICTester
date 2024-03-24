@@ -533,7 +533,7 @@ void dealloc_test(test_data_t **test)
     for(uint8_t i = 0; i < MAX_CRITERIA; i++) {
       if((*test)->test_criteria[i] != NULL) 
        {
-         if((*test)->test_criteria[i]->type == MATCH_LEXPR)
+         if((*test)->test_criteria[i]->type == MATCH_MEXPR)
             free((*test)->test_criteria[i]->expression);
          free((*test)->test_criteria[i]);
        }
@@ -664,10 +664,11 @@ void cli_set_test_frame_interval(int argc, char** argv) {
 
 void cli_set_test_io_settings(int argc, char** argv) {
     if (argc != 5) {
-        vcom_printf("usage: set test <name> io-settings <0|255> <0|255> <0|255> <0|255>, where 0 is all pins in bank = OUT, 255 - all pins in bank = IN\n\r");
+        vcom_printf("usage: set test <name> io-settings <I|O> <I|O> <I|O> <I|O>: set banks to either Input or Output\n\r");
         return;
     }
 
+    uint8_t io_setting;
     char* test_name = argv[0];
 
     // Check if the test exists
@@ -686,14 +687,15 @@ void cli_set_test_io_settings(int argc, char** argv) {
 
     // Convert subsequent parameters to integers and fill in io_settings
     for (int i = 1; i <= 4; ++i) {
-        char* endptr;
-        uint8_t io_setting = strtol(argv[i], &endptr, 10);
-
-        if (*endptr != '\0' || (io_setting != 0 && io_setting != 255)) {
+        if(argv[i][0] == 'I') 
+          io_setting = 255;
+        else if(argv[i][0] == 'O') 
+          io_setting = 0;
+        else
+          {
             vcom_printf("ERROR: invalid I/O setting for bank %d: %s\n\r", i, argv[i]);
             return;
-        }
-
+          }
         G_test_array[test_index]->io_settings[i] = io_setting;
     }
 
@@ -1100,7 +1102,6 @@ void show_test_aliases(char pin_aliases[48][5]) {
             else
               strcpy(right_alias,"none");
           }
-
         vcom_cprintf("|\e[0;33m%-4d\e[0m  | %-4s    |   \e[0;33m%-4d\e[0m  | %-4s    |\r\n","|%-4d  | %-4s    |   %-4d  | %-4s    |\r\n", left_pin, left_alias, right_pin, right_alias);
     }
 
@@ -1122,7 +1123,6 @@ void show_test_aliases(char pin_aliases[48][5]) {
             else
               strcpy(right_alias,"none");
           } 
-
         vcom_cprintf("|\e[0;33m%-4d\e[0m  | %-4s    |   \e[0;33m%-4d\e[0m  | %-4s    |\r\n","|%-4d  | %-4s    |   %-4d  | %-4s    |\r\n", left_pin, left_alias, right_pin, right_alias);
     }
 
@@ -1139,7 +1139,6 @@ void display_aliased_pin_header(char pin_aliases[MAX_ALIASES][5]) {
             vcom_printf("-+- %-4s -+", pin_aliases[i]);
         }
     }
-
     vcom_printf("-+\n\r");
 }
 
@@ -1153,11 +1152,9 @@ void display_aliased_pins_state(test_data_t *test_data, uint16_t state_index)
             uint8_t bank_number = i / 10;
             uint8_t pin_in_bank = i % 10;
             uint8_t state = (test_data->test_states[state_index][bank_number] >> (pin_in_bank)) & 0x01;
-
             vcom_printf("|   %-5s  ", (state == 1) ? "H" : "L");
         }
     }
-
     vcom_printf("|\n\r");
 }
 
@@ -1170,11 +1167,20 @@ void display_aliased_pin_footer(char pin_aliases[MAX_ALIASES][5]) {
             vcom_printf("-+--------+", pin_aliases[i]);
         }
     }
-
     vcom_printf("-+\n\r");
 }
 
 
+#define OUTPUT_BANK_COLOR "\e[0;33m"
+#define INPUT_BANK_COLOR "\e[0;36m"
+
+void bank_state_to_colored_string(uint8_t test_index, uint16_t frame_index, uint8_t bank, char *str)
+ {
+   if(G_test_array[test_index]->io_settings[bank] == 0)
+     uint8_to_colored_binary_string(G_test_array[test_index]->test_states[frame_index][bank],OUTPUT_BANK_COLOR,str);
+   else
+     uint8_to_colored_binary_string(G_test_array[test_index]->test_states[frame_index][bank],INPUT_BANK_COLOR,str);
+ }
 
 void cli_show_test_states(int argc, char** argv){
 
@@ -1193,10 +1199,11 @@ void cli_show_test_states(int argc, char** argv){
      vcom_printf("args %d, %s, %s \n\r", argc, argv[0],argv[1]);
     }
 
-   char bank_1[11];
-   char bank_2[11];
-   char bank_3[11];
-   char bank_4[11];
+   char bank_1[40];
+   char bank_2[40];
+   char bank_3[40];
+   char bank_4[40];
+   char msg[80];
 
    // Check if the test exists
    int test_index = -1;
@@ -1215,13 +1222,29 @@ void cli_show_test_states(int argc, char** argv){
 
    if(!aliased_only)
     {
+     if(G_use_color)
+      {
+        sprintf(msg,"\r\nTester input bank - %s###\e[0m , Tester output bank - %s###\e[0m\r\n",INPUT_BANK_COLOR,OUTPUT_BANK_COLOR);
+        vcom_printf("%s \r\n",msg);
+      }  
+
      vcom_printf("                                BANK1      BANK2      BANK3      BANK4        B1   B2   B3   B4 \r\n");
      for(uint16_t i = 0; i < G_test_array[test_index]->iterations_done; i++)
       {
-        uint8_to_binary_string(G_test_array[test_index]->test_states[i][1], bank_1);
-        uint8_to_binary_string(G_test_array[test_index]->test_states[i][2], bank_2);
-        uint8_to_binary_string(G_test_array[test_index]->test_states[i][3], bank_3);
-        uint8_to_binary_string(G_test_array[test_index]->test_states[i][4], bank_4);
+       if(G_use_color)
+        {
+         bank_state_to_colored_string(test_index,i,1,bank_1);
+         bank_state_to_colored_string(test_index,i,2,bank_2);
+         bank_state_to_colored_string(test_index,i,3,bank_3);
+         bank_state_to_colored_string(test_index,i,4,bank_4);
+        }
+       else
+        {
+         uint8_to_binary_string(G_test_array[test_index]->test_states[i][1], bank_1);
+         uint8_to_binary_string(G_test_array[test_index]->test_states[i][2], bank_2);
+         uint8_to_binary_string(G_test_array[test_index]->test_states[i][3], bank_3);
+         uint8_to_binary_string(G_test_array[test_index]->test_states[i][4], bank_4);
+        }
         vcom_printf("iteration: %4d (frame: %3d): %s %s %s %s | ",i,G_test_array[test_index]->test_states[i][0],bank_1,bank_2,bank_3,bank_4);  
         vcom_printf("0x%02X 0x%02X 0x%02X 0x%02X |\r\n",G_test_array[test_index]->test_states[i][1],
                                               G_test_array[test_index]->test_states[i][2],
@@ -1268,6 +1291,13 @@ void cli_show_test_name(int argc, char** argv) {
             vcom_printf("ERROR: test not found: %s\n\r", test_name);
             return;
         }
+
+        if(argc == 2)
+          if(strcmp(argv[1],"commands") == 0)
+           {
+            display_command_buffer();
+            return;
+           }        
 
         // Display detailed information for the specified test
         vcom_cprintf("test name: \e[0;36m%s\e[0m\n\r","test name: %s\n\r", G_test_array[test_index]->test_name);
@@ -1338,17 +1368,14 @@ void cli_show_test_name(int argc, char** argv) {
             vcom_printf("%d: ",j);
            switch (G_test_array[test_index]->test_criteria[j]->type)
              {
-               case MATCH_LEXPR:
-                   vcom_printf("match logical expression  \n\r");
-                   break;
                case MATCH_MEXPR: 
-                   vcom_printf("match math expression  \n\r");
+                   vcom_printf("match math expression\n\r");
                    break;
                case MATCH_VALUE:
-                   vcom_printf("match value  \n\r");
+                   vcom_printf("match value\n\r");
                    break;
                case MATCH_COUNTER1:
-                   vcom_printf("match counter  \n\r");
+                   vcom_printf("match counter\n\r");
                    break;
              }
 

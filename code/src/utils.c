@@ -35,6 +35,18 @@ uint8_t parse_uint8_string(const char* bitmap_str) {
     }
 }
 
+
+void uint8_to_colored_binary_string(uint8_t value, char *color, char* binary_str) {
+    // Ensure the binary_str is large enough to store the binary representation
+    snprintf(binary_str, 30, "%s0b00000000\e[0m",color);
+
+    // Convert each bit to '0' or '1' and append to the string
+    for (int i = 7; i >= 0; --i) {
+        binary_str[9 + (7 - i)] = (value & (1 << i)) ? '1' : '0';
+    }
+}
+
+
 void uint8_to_binary_string(uint8_t value, char* binary_str) {
     // Ensure the binary_str is large enough to store the binary representation
     snprintf(binary_str, 10, "0b");
@@ -409,5 +421,12 @@ void strings(const char *filename) {
     // Close the file
     f_close(&file);
     f_mount(0,NULL);
+}
+
+
+void display_command_buffer()
+{
+    for(uint8_t i = 0; i < G_cmd_cnt; i++)
+       vcom_printf("%s\r\n",G_command_buffer[i]);
 }
 
